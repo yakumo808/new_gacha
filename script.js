@@ -13,7 +13,7 @@ let currentViewUser = ""; // 現在表示中のタブ
 // 音声設定（初期値：デフォルトファイル）
 let soundSettings = JSON.parse(localStorage.getItem('gachaSoundSettings')) || { 
     normal: 'fanfare.mp3', 
-    ssr: 'SSR_fanfare.mp3' 
+    ssr: 'ssr_fanfare.mp3' 
 };
 
 // ミュート設定（初期値：オフ）
@@ -304,6 +304,39 @@ function exportExcel() {
         return `${y}/${m}/${D} ${H}:${M}:${S}`;
     };
     
+    // --- 1. 総合サマリーシート作成 ---
+    const summaryHeader = ["ユーザー名", "総回数"];
+    settings.forEach(s => summaryHeader.push(s.name));
+    summaryHeader.push("SSR率"); // settings[0]の率
+
+    const summaryData = [summaryHeader];
+
+    users.forEach(u => {
+        const d = userData[u];
+        const c = d.counts;
+        const t = Object.values(c).reduce((a, b) => a + b, 0);
+        
+        const row = [u, t];
+        settings.forEach(s => row.push(c[s.name] || 0));
+        
+        // SSR (settings[0]) 率
+        const ssrC = c[settings[0].name] || 0;
+        const rate = t > 0 ? ((ssrC / t) * 100).toFixed(2) + "%" : "0.00%";
+        row.push(rate);
+        
+        summaryData.push(row);
+    });
+
+    const wsSummary = XLSX.utils.aoa_to_sheet(summaryData);
+    
+    // 列幅設定
+    const summaryCols = [{wch:20}, {wch:10}];
+    settings.forEach(() => summaryCols.push({wch:15}));
+    summaryCols.push({wch:10});
+    wsSummary['!cols'] = summaryCols;
+
+    XLSX.utils.book_append_sheet(wb, wsSummary, "総合サマリー");
+
     // 全ユーザーをループしてシートを作成
     users.forEach(user => {
         const data = userData[user];
