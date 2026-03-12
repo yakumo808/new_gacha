@@ -26,10 +26,13 @@ body {
     scrollbar-width: thin; /* Firefox用 */
 }
 .tab {
-    padding: 10px 16px; background: #2d3748; border-radius: 8px 8px 0 0; cursor: pointer; white-space: nowrap;
+    padding: 10px 16px; background: #2d3748; border-radius: 8px 8px 0 0; cursor: pointer; white-space: nowrap; position: relative;
     flex-shrink: 0; /* タブが縮まないように固定 */
 }
-.tab.active { background: var(--accent); color: #000; font-weight: bold; }
+.tab.active { 
+    background: var(--accent); color: #000; font-weight: bold; 
+    border-bottom: 3px solid var(--accent); margin-bottom: -2px; /* 下線を強調 */
+}
 
 /* 結果表示 */
 .display-area {
@@ -67,10 +70,40 @@ body {
 .help-section li { margin-bottom: 8px; font-size: 0.9rem; line-height: 1.5; }
 .help-strong { color: #fff; font-weight: bold; background: rgba(255,255,255,0.1); padding: 0 4px; border-radius: 4px; }
 
-/* テーブル */
-.summary-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-.summary-table th { background: #2d3748; padding: 10px; }
-.summary-table td { padding: 10px; border-bottom: 1px solid #2d3748; }
+/* --- 集計表エリアの新デザイン --- */
+/* サマリーカード */
+.summary-dashboard {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 15px;
+    margin-bottom: 20px;
+}
+.summary-card {
+    background: #232936; padding: 15px; border-radius: 8px; text-align: center;
+}
+.summary-card .value {
+    font-size: 1.8rem; font-weight: bold; color: var(--accent);
+}
+.summary-card .label {
+    font-size: 0.8rem; color: #a0aec0; margin-top: 5px;
+}
+
+/* テーブル本体 */
+.summary-table-wrapper { /* 横スクロール用ラッパー */
+    overflow-x: auto;
+    margin-top: 10px;
+}
+.summary-table { width: 100%; border-collapse: collapse; }
+.summary-table th { 
+    background: #2d3748; padding: 12px; text-align: left;
+    position: sticky; /* ヘッダー固定 */
+    top: 0;
+    z-index: 1;
+}
+.summary-table td { padding: 12px; border-bottom: 1px solid #2d3748; }
+.summary-table tbody tr:nth-child(even) { /* 縞々模様 */
+    background-color: rgba(45, 55, 72, 0.2);
+}
 
 /* モーダル */
 .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(5px); z-index: 1000; justify-content: center; align-items: center; }
@@ -102,6 +135,11 @@ body {
 input[type="text"], input[type="number"], select { 
     background: #0b0e14; color: white; border: 1px solid #4a5568; padding: 8px; border-radius: 4px;
     font-size: 16px !important; 
+}
+/* 確率入力エラー時のスタイル */
+input.prob-error {
+    border-color: #e53e3e !important;
+    box-shadow: 0 0 5px rgba(229, 62, 62, 0.5);
 }
 
 /* 天井設定エリアのデザイン */

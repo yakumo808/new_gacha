@@ -85,13 +85,18 @@
 
         <div class="summary-section">
             <h4 id="summaryTitle">集計表</h4>
-            <table class="summary-table">
-                <thead>
-                    <tr><th>景品名</th><th>個数</th><th>実測率</th></tr>
-                </thead>
-                <tbody id="summaryBody"></tbody>
-                <tfoot id="summaryFoot"></tfoot>
-            </table>
+            <!-- サマリーダッシュボード（ここにカードが表示される） -->
+            <div id="summaryDashboard" class="summary-dashboard"></div>
+            <!-- テーブルをラッパーで囲み、横スクロール可能に -->
+            <div class="summary-table-wrapper">
+                <table class="summary-table">
+                    <thead>
+                        <tr><th>景品名</th><th>個数</th><th>実測率</th></tr>
+                    </thead>
+                    <tbody id="summaryBody"></tbody>
+                    <tfoot id="summaryFoot"></tfoot>
+                </table>
+            </div>
         </div>
 
         <div class="history-section">

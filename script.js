@@ -208,21 +208,57 @@ function renderTabs() {
 }
 
 function updateSummaryUI() {
+    const dashboard = document.getElementById('summaryDashboard');
     const body = document.getElementById('summaryBody');
     const foot = document.getElementById('summaryFoot');
     const data = userData[currentViewUser];
-    if (!data) { body.innerHTML = ""; if(foot) foot.innerHTML = ""; return; }
-
-    const total = Object.values(data.counts).reduce((a, b) => a + b, 0);
+    
     document.getElementById('summaryTitle').innerText = `${currentViewUser} さんの集計表`;
 
-    body.innerHTML = settings.map(item => {
-        const count = data.counts[item.name] || 0;
-        const per = total > 0 ? ((count / total) * 100).toFixed(1) : 0;
-        return `<tr><td>${item.name}</td><td>${count}</td><td>${per}%</td></tr>`;
-    }).join('');
+    if (!data) { 
+        if(dashboard) dashboard.innerHTML = "";
+        if(body) body.innerHTML = ""; 
+        if(foot) foot.innerHTML = ""; 
+        return; 
+    }
 
-    // 合計行を表示
+    // --- 1. サマリーダッシュボードの更新 ---
+    const total = Object.values(data.counts).reduce((a, b) => a + b, 0);
+    const pityCount = data.pityCount || 0;
+    const pityThreshold = pitySettings.threshold || 100;
+    const remainingForPity = pitySettings.enabled ? Math.max(0, pityThreshold - pityCount) : '無効';
+
+    if (dashboard) {
+        let dashboardHTML = `
+            <div class="summary-card">
+                <div class="value">${total}</div>
+                <div class="label">総ガチャ回数</div>
+            </div>
+            <div class="summary-card">
+                <div class="value">${remainingForPity}</div>
+                <div class="label">天井まであと</div>
+            </div>
+        `;
+        // 各レアリティの排出率カードを追加
+        settings.forEach(item => {
+            const count = data.counts[item.name] || 0;
+            const rate = total > 0 ? ((count / total) * 100).toFixed(1) : 0;
+            dashboardHTML += `
+                <div class="summary-card">
+                    <div class="value" style="color: ${item.color};">${rate}%</div>
+                    <div class="label">${item.name} 排出率</div>
+                </div>
+            `;
+        });
+        dashboard.innerHTML = dashboardHTML;
+    }
+
+    // --- 2. テーブル本体の更新（色分け適用） ---
+    body.innerHTML = settings.map(item => `
+        <tr><td style="color: ${item.color}; font-weight: bold;">${item.name}</td><td>${data.counts[item.name] || 0}</td><td>${total > 0 ? (((data.counts[item.name] || 0) / total) * 100).toFixed(1) : 0}%</td></tr>
+    `).join('');
+
+    // --- 3. テーブルフッターの更新 ---
     foot.innerHTML = `<tr style="font-weight:bold; background:#2d3748"><td>合計</td><td>${total}</td><td>100%</td></tr>`;
 }
 
@@ -521,30 +557,35 @@ window.previewSound = function(type) {
 
 function calculateProb() {
     let sum = 0;
+    const inputs = document.querySelectorAll('.item-row input[type="number"]:not(.calc-target)');
+
     // 最下段以外（ユーザー入力部分）の合計を計算
     for(let i=0; i<settings.length-1; i++) sum += settings[i].prob;
     
     const lastIdx = settings.length - 1;
     let lastProb = 100 - sum;
 
-    // バリデーション：合計が100を超えていないか
+    // --- バリデーションとUI更新 ---
     const saveBtn = document.getElementById('saveBtn');
     const totalEl = document.getElementById('totalProb');
-    const warningEl = document.getElementById('probWarning'); // 追加予定の警告表示エリア
 
     if (lastProb < 0) {
-        // 合計オーバーの場合
+        // 合計が100%を超えた場合
         lastProb = 0; // 最下段は0にする
         totalEl.style.color = '#e53e3e'; // 赤文字
         saveBtn.disabled = true;
         saveBtn.innerText = "確率合計が100%を超えています";
         saveBtn.style.background = "#4a5568";
+        // エラーのある入力欄の枠線を赤くする
+        inputs.forEach(input => input.classList.add('prob-error'));
     } else {
-        // 正常
+        // 正常な場合
         totalEl.style.color = 'inherit';
         saveBtn.disabled = false;
         saveBtn.innerText = "保存";
         saveBtn.style.background = ""; // デフォルトに戻す（CSS依存）
+        // エラークラスを削除
+        inputs.forEach(input => input.classList.remove('prob-error'));
     }
 
     // データの更新（丸め処理）
