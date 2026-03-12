@@ -1,8 +1,8 @@
 // --- 初期データ ---
 let settings = JSON.parse(localStorage.getItem('gachaSettings')) || [
-    { name: "SSR：超レア", prob: 1, color: "#ffdf00", img: "" },
-    { name: "SR：激レア", prob: 9, color: "#e879f9", img: "" },
-    { name: "R：通常", prob: 90, color: "#94a3b8", img: "" }
+    { name: "SSR：超レア", prob: 1, color: "#ffdf00", img: "./SSR.png" },
+    { name: "SR：激レア", prob: 9, color: "#e879f9", img: "./SR.png" },
+    { name: "R：通常", prob: 90, color: "#94a3b8", img: "./R.png" }
 ];
 // 天井設定（初期値：無効, 100回）
 let pitySettings = JSON.parse(localStorage.getItem('gachaPitySettings')) || { enabled: false, threshold: 100 };
