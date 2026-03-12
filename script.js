@@ -16,6 +16,9 @@ let soundSettings = JSON.parse(localStorage.getItem('gachaSoundSettings')) || {
     ssr: 'SSR_fanfare.mp3' 
 };
 
+// ミュート設定（初期値：オフ）
+let isMuted = JSON.parse(localStorage.getItem('gachaMuted')) || false;
+
 function init() {
     updateUserSelectionUI(); // datalistだけでなくボタンリストも更新
     renderTabs();
@@ -24,6 +27,7 @@ function init() {
     if (users.length > 0) switchTab(users[0]);
     
     applySoundSettings(); // 保存された音声設定を適用
+    updateMuteIcon(); // ミュートアイコンの表示更新
 }
 
 // --- ガチャ実行 ---
@@ -92,6 +96,22 @@ function draw(times) {
     updateDisplay(results);
 }
 
+// ミュート切り替え関数
+window.toggleMute = function() {
+    isMuted = !isMuted;
+    localStorage.setItem('gachaMuted', JSON.stringify(isMuted));
+    updateMuteIcon();
+    
+    // 音が鳴っていたら止める
+    if(isMuted) playGachaSound(null);
+};
+
+// アイコン更新
+function updateMuteIcon() {
+    const btn = document.getElementById('muteBtn');
+    if(btn) btn.innerText = isMuted ? "🔇" : "🔊";
+}
+
 // 音声再生管理関数（連打対応）
 function playGachaSound(elementId) {
     // 既存の音をすべてリセット
@@ -102,6 +122,10 @@ function playGachaSound(elementId) {
             el.currentTime = 0;
         }
     });
+    
+    // ミュート中、または停止指示(null)の場合はここで終了
+    if (isMuted || !elementId) return;
+
     // 指定された音を再生
     const target = document.getElementById(elementId);
     if (target) {
@@ -486,6 +510,10 @@ window.applySoundSettings = function() {
 
 // プレビュー再生
 window.previewSound = function(type) {
+    if (isMuted) {
+        alert("ミュート中です。音声を再生するには右上のボタンでミュートを解除してください。");
+        return;
+    }
     const src = soundSettings[type];
     const audio = new Audio(src);
     audio.play().catch(e => alert("再生できませんでした"));
