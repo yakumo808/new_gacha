@@ -4,6 +4,8 @@ let settings = JSON.parse(localStorage.getItem('gachaSettings')) || [
     { name: "SR：激レア", prob: 9, color: "#e879f9", img: "" },
     { name: "R：通常", prob: 90, color: "#94a3b8", img: "" }
 ];
+// 天井設定（初期値：無効, 100回）
+let pitySettings = JSON.parse(localStorage.getItem('gachaPitySettings')) || { enabled: false, threshold: 100 };
 // ユーザーごとのデータを格納するオブジェクト
 let userData = JSON.parse(localStorage.getItem('gachaUserData')) || {}; 
 let currentViewUser = ""; // 現在表示中のタブ
@@ -31,11 +33,34 @@ function draw(times) {
     if (!userData[inputName]) {
         userData[inputName] = { history: [], counts: {} };
     }
+    // 天井カウントの初期化（既存ユーザー対応）
+    if (typeof userData[inputName].pityCount === 'undefined') {
+        userData[inputName].pityCount = 0;
+    }
 
     const results = [];
     for(let i=0; i<times; i++) {
-        const res = performRoll();
-        results.push(res);
+        let res;
+        let isPity = false;
+
+        // --- 天井判定ロジック ---
+        // 有効かつ、現在のカウントが設定値以上ならSSR（配列の0番目）を強制排出
+        if (pitySettings.enabled && userData[inputName].pityCount >= pitySettings.threshold) {
+            res = settings[0];
+            isPity = true;
+            userData[inputName].pityCount = 0; // カウントリセット
+        } else {
+            res = performRoll();
+            // SSR（配列0番目）が当たったらカウントリセット、それ以外は加算
+            if (res === settings[0]) {
+                userData[inputName].pityCount = 0;
+            } else {
+                userData[inputName].pityCount++;
+            }
+        }
+        
+        // 結果を保存（isPityフラグを付与してUI表示に使用）
+        results.push({ ...res, isPity: isPity });
         
         // ユーザーデータに保存
         userData[inputName].history.unshift({
@@ -120,6 +145,7 @@ function updateDisplay(results) {
     const area = document.getElementById('displayArea');
     area.innerHTML = results.map(res => `
         <div class="result-card" style="border-color: ${res.color}; box-shadow: 0 0 10px ${res.color}">
+            ${res.isPity ? `<span class="pity-badge">天井確定！</span>` : ''}
             ${res.img ? `<img src="${res.img}">` : `<div style="height:60px; background:#111"></div>`}
             <div style="font-size: 0.7rem; color: ${res.color}">${res.name}</div>
         </div>
@@ -175,6 +201,7 @@ function saveToStorage() {
     try {
         localStorage.setItem('gachaSettings', JSON.stringify(settings));
         localStorage.setItem('gachaUserData', JSON.stringify(userData));
+        localStorage.setItem('gachaPitySettings', JSON.stringify(pitySettings)); // 天井設定も保存
     } catch (e) {
         // 容量オーバー時の自動クリーンアップ機能
         if (e.name === 'QuotaExceededError' || e.code === 22) {
@@ -243,7 +270,29 @@ window.onclick = function(event) {
 
 function renderInputs() {
     const container = document.getElementById('itemInputs');
-    container.innerHTML = settings.map((item, i) => `
+    
+    // --- 天井設定セクションの注入 ---
+    let html = `
+    <div class="pity-settings-box">
+        <h3 class="pity-title">天井設定</h3>
+        <div class="pity-row">
+            <label class="toggle-switch">
+                <input type="checkbox" onchange="updatePity('enabled', this.checked)" ${pitySettings.enabled ? 'checked' : ''}>
+                <span class="slider round"></span>
+            </label>
+            <span class="pity-label-text">天井機能を有効にする</span>
+        </div>
+        <div class="pity-row" style="margin-top:8px;">
+            <span>SSR排出なし</span>
+            <input type="number" class="pity-input" value="${pitySettings.threshold}" onchange="updatePity('threshold', this.value)">
+            <span>回で次回SSR確定</span>
+        </div>
+    </div>
+    <hr style="border-color:#2d3748; margin: 15px 0;">
+    `;
+
+    // --- 景品設定リスト ---
+    html += settings.map((item, i) => `
         <div class="item-row">
             <!-- プレビュー画像またはダミー表示 -->
             ${item.img 
@@ -264,8 +313,16 @@ function renderInputs() {
             ${i !== settings.length-1 ? `<button onclick="removeItem(${i})">×</button>` : '<span>固定</span>'}
         </div>
     `).join('');
+    
+    container.innerHTML = html;
     calculateProb();
 }
+
+// 天井設定の更新用関数
+window.updatePity = function(key, val) {
+    if (key === 'enabled') pitySettings.enabled = val;
+    if (key === 'threshold') pitySettings.threshold = parseInt(val) || 100;
+};
 
 function handleFile(i, input) {
     const file = input.files[0];

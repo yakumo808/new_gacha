@@ -37,9 +37,18 @@ body {
     margin: 20px 0; padding: 20px; display: flex; flex-wrap: wrap; justify-content: center; gap: 10px;
 }
 .result-card {
+    position: relative; /* バッジ表示のために必要 */
     width: 100px; padding: 10px; background: #252a35; border-radius: 10px; border: 2px solid transparent;
 }
 .result-card img { width: 100%; height: 60px; object-fit: cover; border-radius: 4px; }
+
+/* 天井確定バッジ */
+.pity-badge {
+    position: absolute; top: -8px; left: 50%; transform: translateX(-50%);
+    background: #e11d48; color: white; font-size: 10px; padding: 2px 8px;
+    border-radius: 10px; white-space: nowrap; font-weight: bold;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.5); z-index: 5;
+}
 
 /* ボタン類 */
 .btn-main { background: var(--accent); color: #000; border: none; padding: 12px 25px; border-radius: 50px; cursor: pointer; font-weight: bold; }
@@ -85,6 +94,42 @@ body {
 input[type="text"], input[type="number"], select { 
     background: #0b0e14; color: white; border: 1px solid #4a5568; padding: 8px; border-radius: 4px;
     font-size: 16px !important; 
+}
+
+/* 天井設定エリアのデザイン */
+.pity-settings-box {
+    background: #232936; padding: 15px; border-radius: 8px; margin-bottom: 10px;
+}
+.pity-title {
+    margin: 0 0 10px 0; font-size: 1rem; color: var(--accent); border-bottom: 1px solid #4a5568; padding-bottom: 5px;
+}
+.pity-row {
+    display: flex; align-items: center; gap: 10px; font-size: 0.95rem;
+}
+.pity-input {
+    width: 70px !important; text-align: center; background: #1a202c !important;
+}
+
+/* トグルスイッチ */
+.toggle-switch {
+    position: relative; display: inline-block; width: 46px; height: 24px;
+}
+.toggle-switch input { opacity: 0; width: 0; height: 0; }
+.slider {
+    position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+    background-color: #4a5568; transition: .4s; border-radius: 24px;
+}
+.slider:before {
+    position: absolute; content: ""; height: 18px; width: 18px;
+    left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%;
+}
+input:checked + .slider { background-color: var(--accent); }
+input:checked + .slider:before { transform: translateX(22px); }
+
+/* スマホ用調整：スイッチ周りを押しやすく */
+@media (max-width: 600px) {
+    .pity-row { flex-wrap: wrap; }
+    .pity-label-text { font-size: 1rem; padding: 5px 0; }
 }
 
 /* ユーザー選択クイックボタンエリア */
