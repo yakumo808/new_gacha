@@ -285,45 +285,75 @@ function updateDisplay(results) {
 // --- Excel一括出力 (SheetJS) ---
 function exportExcel() {
     const wb = XLSX.utils.book_new(); // 新しいブック作成
+    const users = Object.keys(userData);
+
+    if (users.length === 0) {
+        alert("データがありません"); return;
+    }
+
+    // 日時フォーマット用ヘルパー (YYYY/MM/DD HH:MM:SS)
+    const formatTime = (str) => {
+        const d = new Date(str);
+        if (isNaN(d.getTime())) return str;
+        const y = d.getFullYear();
+        const m = ('0' + (d.getMonth() + 1)).slice(-2);
+        const D = ('0' + d.getDate()).slice(-2);
+        const H = ('0' + d.getHours()).slice(-2);
+        const M = ('0' + d.getMinutes()).slice(-2);
+        const S = ('0' + d.getSeconds()).slice(-2);
+        return `${y}/${m}/${D} ${H}:${M}:${S}`;
+    };
     
     // 全ユーザーをループしてシートを作成
-    Object.keys(userData).forEach(user => {
+    users.forEach(user => {
         const data = userData[user];
         const history = data.history;
         const counts = data.counts;
         const total = Object.values(counts).reduce((a, b) => a + b, 0);
 
-        // 集計データの作成
-        const summaryData = settings.map(item => {
+        // 1. 集計サマリー（表の冒頭に配置）
+        const wsData = [
+            ["【集計レポート】", "", ""],
+            ["レアリティ/景品名", "当選数", "実効排出率"]
+        ];
+
+        // 設定順（SSR優先）で集計行を追加
+        settings.forEach(item => {
             const count = counts[item.name] || 0;
-            const per = total > 0 ? ((count / total) * 100).toFixed(1) + "%" : "0%";
-            return [item.name, count, per];
+            const rate = total > 0 ? ((count / total) * 100).toFixed(2) + "%" : "0.00%";
+            wsData.push([item.name, count, rate]);
         });
-        summaryData.push(["合計", total, "100%"]);
+        wsData.push(["総計", total, "100%"]);
+        wsData.push([]); // 空行による区切り
 
-        // 履歴と集計を横並びにするためのデータ構築
-        // A,B列:履歴 | C列:空白 | D,E,F列:集計
-        const wsData = [["【履歴】日時", "【履歴】景品名", "", "【集計】景品名", "個数", "実測率"]];
-        const maxRows = Math.max(history.length, summaryData.length);
-
-        for (let i = 0; i < maxRows; i++) {
-            const h = history[i] || { time: "", name: "" };
-            const s = summaryData[i] || ["", "", ""];
-            wsData.push([h.time, h.name, "", s[0], s[1], s[2]]);
-        }
+        // 2. 履歴データ（オートフィルタ対象）
+        const headerRowIdx = wsData.length; // ヘッダーの行番号(0始まり)
+        wsData.push(["実行日時", "当選景品"]);
+        
+        history.forEach(h => {
+            wsData.push([formatTime(h.time), h.name]);
+        });
 
         const ws = XLSX.utils.aoa_to_sheet(wsData);
 
         // 列幅の調整（見やすくするため）
-        ws['!cols'] = [{wch:22}, {wch:15}, {wch:5}, {wch:15}, {wch:8}, {wch:8}];
+        ws['!cols'] = [{wch:22}, {wch:35}, {wch:12}];
+
+        // オートフィルタの設定（履歴データの範囲）
+        if (history.length > 0) {
+            const range = XLSX.utils.decode_range(ws['!ref']);
+            // ヘッダー行から最終行までフィルタをかける
+            const filterRange = XLSX.utils.encode_range({
+                s: { r: headerRowIdx, c: 0 },
+                e: { r: range.e.r, c: 1 }
+            });
+            ws['!autofilter'] = { ref: filterRange };
+        }
 
         XLSX.utils.book_append_sheet(wb, ws, user); // ユーザー名でシート追加
     });
 
-    if (Object.keys(userData).length === 0) {
-        alert("データがありません"); return;
-    }
-    XLSX.writeFile(wb, "ガチャ履歴_集計付.xlsx");
+    XLSX.writeFile(wb, "ガチャ履歴_レポート.xlsx");
 }
 
 // --- 設定・保存系 ---
