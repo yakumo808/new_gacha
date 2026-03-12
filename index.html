@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Gacha System - Pro Max</title>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <button class="btn-settings" onclick="openModal()">⚙</button>
+
+    <div class="container">
+        <h1>GACHA SYSTEM PRO</h1>
+        
+        <div class="user-control">
+            <input type="text" id="userName" list="userList" placeholder="名前を入力してガチャ開始" class="name-input">
+            <datalist id="userList"></datalist>
+        </div>
+
+        <div class="display-area" id="displayArea">結果がここに表示されます</div>
+
+        <div class="btn-group">
+            <button class="btn-main" onclick="draw(1)">1回引く</button>
+            <button class="btn-main btn-ten" onclick="draw(10)">10連ガチャ</button>
+        </div>
+
+        <hr>
+
+        <div class="tab-container">
+            <h3>データ閲覧</h3>
+            <div id="tabs" class="tabs">
+                </div>
+        </div>
+
+        <div class="summary-section">
+            <h4 id="summaryTitle">集計表</h4>
+            <table class="summary-table">
+                <thead>
+                    <tr><th>景品名</th><th>個数</th><th>実測率</th></tr>
+                </thead>
+                <tbody id="summaryBody"></tbody>
+                <tfoot id="summaryFoot"></tfoot>
+            </table>
+        </div>
+
+        <div class="history-section">
+            <div class="history-header">
+                <h4>最近の履歴</h4>
+                <div class="export-btns">
+                    <button onclick="exportExcel()" class="btn-sub">Excel一括出力 (タブ分け)</button>
+                </div>
+            </div>
+            <div class="history-area" id="historyList"></div>
+        </div>
+        
+        <div class="footer-btns" style="margin-top: 30px; display: flex; gap: 10px; justify-content: center;">
+    <button onclick="resetHistory()" class="btn-sub" style="background: #f87171;">履歴・集計をリセット</button>
+</div>
+
+    <!-- 設定モーダル -->
+    <div id="modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <h2>景品設定</h2>
+            <div id="itemInputs" style="max-height: 400px; overflow-y: auto; margin-bottom: 10px;"></div>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <button onclick="addItem()" class="btn-sub">+ 追加</button>
+                <span>合計確率: <span id="totalProb">100</span>%</span>
+            </div>
+            <button id="saveBtn" class="btn-main" onclick="saveSettings()" style="margin-top:15px; width:100%">保存</button>
+
+            <hr style="border: 0; border-top: 1px solid #2d3748; margin: 20px 0;">
+            <button onclick="resetSettings()" class="btn-sub" style="background: #4b5563; width: 100%;">景品設定を初期化</button>
+        </div>
+    </div>
+
+    <!-- ガチャ音源読み込み -->
+    <audio id="gachaSound" src="fanfare.mp3"></audio>
+
+    <script src="script.js"></script>
+</body>
+</html>
