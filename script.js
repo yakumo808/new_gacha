@@ -10,12 +10,20 @@ let pitySettings = JSON.parse(localStorage.getItem('gachaPitySettings')) || { en
 let userData = JSON.parse(localStorage.getItem('gachaUserData')) || {}; 
 let currentViewUser = ""; // 現在表示中のタブ
 
+// 音声設定（初期値：デフォルトファイル）
+let soundSettings = JSON.parse(localStorage.getItem('gachaSoundSettings')) || { 
+    normal: 'fanfare.mp3', 
+    ssr: 'SSR_fanfare.mp3' 
+};
+
 function init() {
     updateUserSelectionUI(); // datalistだけでなくボタンリストも更新
     renderTabs();
     // 最初のユーザーがいれば表示
     const users = Object.keys(userData);
     if (users.length > 0) switchTab(users[0]);
+    
+    applySoundSettings(); // 保存された音声設定を適用
 }
 
 // --- ガチャ実行 ---
@@ -264,6 +272,7 @@ function saveToStorage() {
         localStorage.setItem('gachaSettings', JSON.stringify(settings));
         localStorage.setItem('gachaUserData', JSON.stringify(userData));
         localStorage.setItem('gachaPitySettings', JSON.stringify(pitySettings)); // 天井設定も保存
+        localStorage.setItem('gachaSoundSettings', JSON.stringify(soundSettings)); // 音声設定保存
     } catch (e) {
         // 容量オーバー時の自動クリーンアップ機能
         if (e.name === 'QuotaExceededError' || e.code === 22) {
@@ -332,9 +341,10 @@ window.onclick = function(event) {
 
 function renderInputs() {
     const container = document.getElementById('itemInputs');
-    
+    let html = "";
+
     // --- 天井設定セクションの注入 ---
-    let html = `
+    html += `
     <div class="pity-settings-box">
         <h3 class="pity-title">天井設定</h3>
         <div class="pity-row">
@@ -350,6 +360,30 @@ function renderInputs() {
             <span>回で次回SSR確定</span>
         </div>
     </div>
+    `;
+
+    // --- 音声設定セクション ---
+    html += `
+    <div class="sound-settings-box">
+        <h3 class="pity-title">演出サウンド設定</h3>
+        <div class="sound-row">
+            <span class="sound-label">通常当たり音</span>
+            <label class="file-label btn-sub" style="margin:0">
+                変更
+                <input type="file" accept="audio/*" onchange="handleAudio('normal', this)">
+            </label>
+            <button class="btn-sub" onclick="previewSound('normal')">▶ 再生</button>
+        </div>
+        <div class="sound-row" style="margin-top:8px;">
+            <span class="sound-label">SSR大当たり音</span>
+            <label class="file-label btn-sub" style="margin:0">
+                変更
+                <input type="file" accept="audio/*" onchange="handleAudio('ssr', this)">
+            </label>
+            <button class="btn-sub" onclick="previewSound('ssr')">▶ 再生</button>
+        </div>
+        <div style="font-size:0.7rem; color:#aaa; margin-top:5px;">※2MB以内のMP3/WAV推奨</div>
+    </div>
     <hr style="border-color:#2d3748; margin: 15px 0;">
     `;
 
@@ -363,7 +397,13 @@ function renderInputs() {
             }
 
             <input type="text" value="${item.name}" onchange="updateItem(${i}, 'name', this.value)">
-            <input type="number" value="${item.prob}" ${i === settings.length-1 ? 'readonly style="background:#111"' : ''} oninput="updateItem(${i}, 'prob', this.value)">
+            
+            <!-- 確率入力欄: 最下段は自動計算のためreadonly -->
+            <input type="number" id="prob-input-${i}" value="${item.prob}" 
+                ${i === settings.length-1 ? 'readonly class="calc-target"' : ''} 
+                oninput="updateItem(${i}, 'prob', this.value)"
+                step="0.1"
+            >
             
             <!-- 画像選択ボタン：画像ありなら色を変えて視覚的に強調 -->
             <label class="file-label" style="${item.img ? 'background:#3182ce; border-color:#3182ce; font-weight:bold; color:white;' : ''}">
@@ -417,14 +457,76 @@ function handleFile(i, input) {
     }
 }
 
+// 音声ファイルの処理
+window.handleAudio = function(type, input) {
+    const file = input.files[0];
+    if (file) {
+        // サイズチェック (例: 3MB制限)
+        if (file.size > 3 * 1024 * 1024) {
+            alert("ファイルサイズが大きすぎます。3MB以下のファイルを使用してください。");
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            soundSettings[type] = e.target.result;
+            applySoundSettings(); // 即座に反映
+            alert(`${type === 'ssr' ? 'SSR' : '通常'}演出の音声を変更しました`);
+        };
+        reader.readAsDataURL(file);
+    }
+};
+
+// 音声の適用
+window.applySoundSettings = function() {
+    const n = document.getElementById('gachaSound');
+    const s = document.getElementById('ssrSound');
+    if(n) n.src = soundSettings.normal;
+    if(s) s.src = soundSettings.ssr;
+};
+
+// プレビュー再生
+window.previewSound = function(type) {
+    const src = soundSettings[type];
+    const audio = new Audio(src);
+    audio.play().catch(e => alert("再生できませんでした"));
+};
+
 function calculateProb() {
     let sum = 0;
+    // 最下段以外（ユーザー入力部分）の合計を計算
     for(let i=0; i<settings.length-1; i++) sum += settings[i].prob;
-    const lastProb = Math.max(0, 100 - sum).toFixed(1);
-    settings[settings.length-1].prob = parseFloat(lastProb);
-    document.getElementById('totalProb').innerText = (sum + parseFloat(lastProb)).toFixed(1);
+    
+    const lastIdx = settings.length - 1;
+    let lastProb = 100 - sum;
+
+    // バリデーション：合計が100を超えていないか
     const saveBtn = document.getElementById('saveBtn');
-    saveBtn.disabled = sum > 100;
+    const totalEl = document.getElementById('totalProb');
+    const warningEl = document.getElementById('probWarning'); // 追加予定の警告表示エリア
+
+    if (lastProb < 0) {
+        // 合計オーバーの場合
+        lastProb = 0; // 最下段は0にする
+        totalEl.style.color = '#e53e3e'; // 赤文字
+        saveBtn.disabled = true;
+        saveBtn.innerText = "確率合計が100%を超えています";
+        saveBtn.style.background = "#4a5568";
+    } else {
+        // 正常
+        totalEl.style.color = 'inherit';
+        saveBtn.disabled = false;
+        saveBtn.innerText = "保存";
+        saveBtn.style.background = ""; // デフォルトに戻す（CSS依存）
+    }
+
+    // データの更新（丸め処理）
+    settings[lastIdx].prob = parseFloat(lastProb.toFixed(1));
+    
+    // DOMの更新（最下段の入力欄をリアルタイム書き換え）
+    const lastInput = document.getElementById(`prob-input-${lastIdx}`);
+    if(lastInput) lastInput.value = settings[lastIdx].prob;
+
+    document.getElementById('totalProb').innerText = (sum + settings[lastIdx].prob).toFixed(1);
 }
 
 function updateItem(i, k, v) { 

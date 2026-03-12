@@ -100,6 +100,17 @@ input[type="text"], input[type="number"], select {
 .pity-settings-box {
     background: #232936; padding: 15px; border-radius: 8px; margin-bottom: 10px;
 }
+.sound-settings-box {
+    background: #232936; padding: 15px; border-radius: 8px; margin-bottom: 10px;
+}
+.sound-row {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+}
+.sound-label {
+    flex-grow: 1; font-size: 0.9rem;
+}
+
+/* タイトル共通 */
 .pity-title {
     margin: 0 0 10px 0; font-size: 1rem; color: var(--accent); border-bottom: 1px solid #4a5568; padding-bottom: 5px;
 }
@@ -108,6 +119,14 @@ input[type="text"], input[type="number"], select {
 }
 .pity-input {
     width: 70px !important; text-align: center; background: #1a202c !important;
+}
+
+/* 自動計算用の確率入力欄 */
+.calc-target {
+    background-color: #1a202c !important; /* 暗いグレー */
+    color: #a0aec0 !important;           /* 文字色を少し落とす */
+    border: 1px dashed #4a5568 !important;
+    pointer-events: none;                /* クリック不可 */
 }
 
 /* トグルスイッチ */
