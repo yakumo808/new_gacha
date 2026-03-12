@@ -33,8 +33,8 @@ body {
 
 /* 結果表示 */
 .display-area {
-    background: var(--card-bg); min-height: 200px; border-radius: 15px;
-    margin: 20px 0; padding: 20px; display: flex; flex-wrap: wrap; justify-content: center; gap: 10px;
+    background: var(--card-bg); border-radius: 15px;
+    margin: 20px 0; padding: 20px; display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 10px;
 }
 .result-card {
     position: relative; /* バッジ表示のために必要 */
