@@ -56,7 +56,9 @@ function draw(times) {
         }
         
         // 結果を保存（isPityフラグを付与してUI表示に使用）
-        results.push({ ...res, isPity: isPity });
+        // オブジェクトのコピーを作るため、ここでSSR判定(参照一致)を行ってフラグとして持たせる
+        const isSSR = (res === settings[0]);
+        results.push({ ...res, isPity: isPity, isSSR: isSSR });
         
         // ユーザーデータに保存
         userData[inputName].history.unshift({
@@ -67,7 +69,7 @@ function draw(times) {
     }
 
     // 2. SSRが含まれているか判定 (settings[0]がSSRと仮定)
-    const hasSSR = results.some(r => r === settings[0]);
+    const hasSSR = results.some(r => r.isSSR);
 
     // 3. 音と演出のトリガー
     playGachaSound(hasSSR ? 'ssrSound' : 'gachaSound');
@@ -202,7 +204,7 @@ function updateDisplay(results) {
     const area = document.getElementById('displayArea');
     area.innerHTML = results.map(res => {
         // SSRかどうか判定してクラスを追加
-        const isSSR = (res === settings[0]);
+        const isSSR = res.isSSR;
         return `
         <div class="result-card ${isSSR ? 'ssr-card' : ''}" style="border-color: ${res.color}; box-shadow: 0 0 10px ${res.color}">
             ${res.isPity ? `<span class="pity-badge">天井確定！</span>` : ''}
