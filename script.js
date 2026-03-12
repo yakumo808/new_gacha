@@ -20,20 +20,16 @@ function init() {
 
 // --- ガチャ実行 ---
 function draw(times) {
-    // 音を再生
-    const audio = document.getElementById('gachaSound');
-    if (audio) {
-        audio.currentTime = 0; // 連打対応：再生位置を先頭に戻す
-        audio.play().catch(e => console.log("音声ファイル(fanfare.mp3)が見つかりません"));
-    }
+    // 仮の結果生成（この後SSR判定を行うため先に回すわけにはいかないが、ロジック上結果確定後に演出が必要）
+    // なので処理順序としては「ロジック実行」→「SSR判定」→「音と演出」→「表示更新」となります。
 
+    // 1. まず入力を取得
     const inputName = document.getElementById('userName').value.trim() || "名無しさん";
     
-    // ユーザー用データの初期化
+    // ユーザー初期化系は既存のまま
     if (!userData[inputName]) {
         userData[inputName] = { history: [], counts: {} };
     }
-    // 天井カウントの初期化（既存ユーザー対応）
     if (typeof userData[inputName].pityCount === 'undefined') {
         userData[inputName].pityCount = 0;
     }
@@ -70,11 +66,72 @@ function draw(times) {
         userData[inputName].counts[res.name] = (userData[inputName].counts[res.name] || 0) + 1;
     }
 
+    // 2. SSRが含まれているか判定 (settings[0]がSSRと仮定)
+    const hasSSR = results.some(r => r === settings[0]);
+
+    // 3. 音と演出のトリガー
+    playGachaSound(hasSSR ? 'ssrSound' : 'gachaSound');
+    if (hasSSR) {
+        triggerSSREffects();
+    }
+
     saveToStorage();
     updateUserSelectionUI();
     renderTabs();
     switchTab(inputName);
     updateDisplay(results);
+}
+
+// 音声再生管理関数（連打対応）
+function playGachaSound(elementId) {
+    // 既存の音をすべてリセット
+    ['gachaSound', 'ssrSound'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.pause();
+            el.currentTime = 0;
+        }
+    });
+    // 指定された音を再生
+    const target = document.getElementById(elementId);
+    if (target) {
+        target.play().catch(e => console.log(`音声ファイル再生エラー: ${elementId}`, e));
+    }
+}
+
+// SSR演出関数（フラッシュ、振動、紙吹雪）
+function triggerSSREffects() {
+    // A. スクリーンフラッシュ
+    const flash = document.createElement('div');
+    flash.className = 'flash-overlay';
+    document.body.appendChild(flash);
+    setTimeout(() => flash.remove(), 600);
+
+    // B. 振動演出 (結果表示エリアを揺らす)
+    const area = document.getElementById('displayArea');
+    area.classList.remove('shake-effect');
+    void area.offsetWidth; // リフローさせてアニメーションをリセット
+    area.classList.add('shake-effect');
+
+    // C. 紙吹雪
+    createConfetti();
+}
+
+// 紙吹雪生成ロジック
+function createConfetti() {
+    const colors = ['#ffdf00', '#ffd700', '#ffffff', '#fcd34d'];
+    for(let i=0; i<50; i++) {
+        const div = document.createElement('div');
+        div.className = 'confetti';
+        div.style.left = Math.random() * 100 + "vw";
+        div.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+        // 落下速度と回転をランダムに
+        div.style.animation = `fall ${2 + Math.random() * 3}s linear forwards`;
+        document.body.appendChild(div);
+        
+        // アニメーション終了後に要素削除
+        setTimeout(() => div.remove(), 5000);
+    }
 }
 
 function performRoll() {
@@ -143,13 +200,16 @@ function updateHistoryUI() {
 
 function updateDisplay(results) {
     const area = document.getElementById('displayArea');
-    area.innerHTML = results.map(res => `
-        <div class="result-card" style="border-color: ${res.color}; box-shadow: 0 0 10px ${res.color}">
+    area.innerHTML = results.map(res => {
+        // SSRかどうか判定してクラスを追加
+        const isSSR = (res === settings[0]);
+        return `
+        <div class="result-card ${isSSR ? 'ssr-card' : ''}" style="border-color: ${res.color}; box-shadow: 0 0 10px ${res.color}">
             ${res.isPity ? `<span class="pity-badge">天井確定！</span>` : ''}
             ${res.img ? `<img src="${res.img}">` : `<div style="height:60px; background:#111"></div>`}
             <div style="font-size: 0.7rem; color: ${res.color}">${res.name}</div>
         </div>
-    `).join('');
+    `}).join('');
 }
 
 // --- Excel一括出力 (SheetJS) ---
