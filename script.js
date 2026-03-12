@@ -9,7 +9,7 @@ let userData = JSON.parse(localStorage.getItem('gachaUserData')) || {};
 let currentViewUser = ""; // 現在表示中のタブ
 
 function init() {
-    updateDatalist();
+    updateUserSelectionUI(); // datalistだけでなくボタンリストも更新
     renderTabs();
     // 最初のユーザーがいれば表示
     const users = Object.keys(userData);
@@ -46,7 +46,7 @@ function draw(times) {
     }
 
     saveToStorage();
-    updateDatalist();
+    updateUserSelectionUI();
     renderTabs();
     switchTab(inputName);
     updateDisplay(results);
@@ -73,13 +73,22 @@ function switchTab(userName) {
 function renderTabs() {
     const tabs = document.getElementById('tabs');
     tabs.innerHTML = "";
-    Object.keys(userData).forEach(user => {
+    const users = Object.keys(userData);
+    
+    if (users.length === 0) {
+        tabs.innerHTML = "<div style='padding:10px; font-size:0.8rem; color:#aaa'>履歴なし</div>";
+        return;
+    }
+
+    users.forEach(user => {
         const div = document.createElement('div');
         div.className = `tab ${user === currentViewUser ? 'active' : ''}`;
         div.innerText = user;
-        div.onclick = () => switchTab(user);
+        // スマホでのタップ反応を良くするため onclick を明示的に設定
+        div.addEventListener('click', () => switchTab(user));
         tabs.appendChild(div);
     });
+    updateUserSelectionUI(); // タブ切り替え時に選択状態を反映
 }
 
 function updateSummaryUI() {
@@ -167,28 +176,86 @@ function saveToStorage() {
         localStorage.setItem('gachaSettings', JSON.stringify(settings));
         localStorage.setItem('gachaUserData', JSON.stringify(userData));
     } catch (e) {
-        console.error("保存失敗:", e);
-        alert("データの保存に失敗しました。\n画像サイズが大きすぎて容量制限を超えている可能性があります。");
+        // 容量オーバー時の自動クリーンアップ機能
+        if (e.name === 'QuotaExceededError' || e.code === 22) {
+            console.warn("容量不足のため、古い履歴を削除して再保存を試みます。");
+            cleanupOldData();
+            try {
+                localStorage.setItem('gachaUserData', JSON.stringify(userData));
+                alert("保存容量がいっぱいになったため、古い履歴の一部を自動削除しました。");
+            } catch (retryE) {
+                alert("データの保存に失敗しました。画像サイズが大きすぎる可能性があります。");
+            }
+        } else {
+            console.error("保存失敗:", e);
+        }
     }
 }
 
-function updateDatalist() {
+// 古い履歴を削除して容量を確保する関数
+function cleanupOldData() {
+    Object.keys(userData).forEach(user => {
+        // 各ユーザーの履歴を最新50件に制限
+        if (userData[user].history.length > 50) {
+            userData[user].history = userData[user].history.slice(0, 50);
+        }
+    });
+}
+
+// スマホ向けのユーザー選択UI更新 (datalist + ボタンリスト)
+function updateUserSelectionUI() {
+    // 1. 従来のdatalist更新
     const dl = document.getElementById('userList');
     dl.innerHTML = Object.keys(userData).map(u => `<option value="${u}">`).join('');
+
+    // 2. スマホ向けクイック選択ボタンの更新
+    const quickArea = document.getElementById('quickUserSelect');
+    if (!quickArea) return;
+    
+    quickArea.innerHTML = Object.keys(userData).map(u => `
+        <div class="user-chip ${u === currentViewUser ? 'active' : ''}" 
+             onclick="selectUserFromChip('${u}')">
+            ${u}
+        </div>
+    `).join('');
+}
+
+// チップをクリックした時の動作
+window.selectUserFromChip = function(name) {
+    document.getElementById('userName').value = name;
+    switchTab(name);
 }
 
 // 設定モーダル関連の関数
 function openModal() { document.getElementById('modal').style.display = 'flex'; renderInputs(); }
 function closeModal() { document.getElementById('modal').style.display = 'none'; }
 
+// ヘルプモーダル関連の関数
+function openHelp() { document.getElementById('helpModal').style.display = 'flex'; }
+function closeHelp() { document.getElementById('helpModal').style.display = 'none'; }
+
+// モーダルの外側をクリックしたら閉じる処理（共通）
+window.onclick = function(event) {
+    if (event.target.classList.contains('modal')) {
+        event.target.style.display = 'none';
+    }
+}
+
 function renderInputs() {
     const container = document.getElementById('itemInputs');
     container.innerHTML = settings.map((item, i) => `
         <div class="item-row">
+            <!-- プレビュー画像またはダミー表示 -->
+            ${item.img 
+                ? `<img src="${item.img}" class="setting-preview" alt="preview">` 
+                : `<div class="setting-preview">No Img</div>`
+            }
+
             <input type="text" value="${item.name}" onchange="updateItem(${i}, 'name', this.value)">
             <input type="number" value="${item.prob}" ${i === settings.length-1 ? 'readonly style="background:#111"' : ''} oninput="updateItem(${i}, 'prob', this.value)">
             
-            <label class="file-label" style="${item.img ? 'background:#3182ce; border-color:#3182ce; font-weight:bold;' : ''}">
+            <!-- 画像選択ボタン：画像ありなら色を変えて視覚的に強調 -->
+            <label class="file-label" style="${item.img ? 'background:#3182ce; border-color:#3182ce; font-weight:bold; color:white;' : ''}">
                 ${item.img ? '画像あり' : '画像選択'}
                 <input type="file" accept="image/*" onchange="handleFile(${i}, this)">
             </label>
@@ -221,6 +288,9 @@ function handleFile(i, input) {
                 ctx.drawImage(img, 0, 0, width, height);
                 // JPEG形式で圧縮率0.7として保存
                 settings[i].img = canvas.toDataURL('image/jpeg', 0.7);
+                
+                // 処理完了後にUIを再描画してプレビューを即時更新
+                renderInputs();
             };
             img.src = e.target.result;
         };
@@ -258,7 +328,7 @@ function resetHistory() {
         currentViewUser = "";
         
         // 画面を更新
-        updateDatalist();
+        updateUserSelectionUI();
         renderTabs();
         document.getElementById('displayArea').innerHTML = "リセットされました";
         document.getElementById('summaryBody').innerHTML = "";

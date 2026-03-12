@@ -2,12 +2,14 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- スマホでの入力時ズーム防止とアプリライクな表示のために viewport を調整 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>AI Gacha System - Pro Max</title>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <button class="btn-help" onclick="openHelp()">❓</button>
     <button class="btn-settings" onclick="openModal()">⚙</button>
 
     <div class="container">
@@ -16,6 +18,8 @@
         <div class="user-control">
             <input type="text" id="userName" list="userList" placeholder="名前を入力してガチャ開始" class="name-input">
             <datalist id="userList"></datalist>
+            <!-- スマホで押しやすいユーザー履歴選択ボタンエリア -->
+            <div id="quickUserSelect" class="quick-select-area"></div>
         </div>
 
         <div class="display-area" id="displayArea">結果がここに表示されます</div>
@@ -58,9 +62,54 @@
     <button onclick="resetHistory()" class="btn-sub" style="background: #f87171;">履歴・集計をリセット</button>
 </div>
 
+    <!-- ヘルプモーダル -->
+    <div id="helpModal" class="modal" style="display: none;">
+        <div class="modal-content" style="position: relative;">
+            <span class="close" onclick="closeHelp()">&times;</span>
+            <h2>🎰 AI GACHA SYSTEM の楽しみ方</h2>
+            <p style="font-size: 0.9rem; margin-bottom: 20px;">このアプリは、あなただけのオリジナルガチャを作成して、履歴を管理できるシステムです。</p>
+            
+            <div class="help-section">
+                <h3>🛠️ ステップ1：景品をセットする</h3>
+                <ul>
+                    <li>画面右上の <span class="help-strong">⚙（設定ボタン）</span> を押して、景品の名前・確率・画像を設定しましょう。</li>
+                    <li><span class="help-strong">画像:</span> 自動でリサイズ・圧縮されるので、スマホの写真でも安心です。</li>
+                    <li><span class="help-strong">確率:</span> 合計が100%になるように自動調整されます。</li>
+                </ul>
+            </div>
+            
+            <div class="help-section">
+                <h3>🕹️ ステップ2：ガチャを回す</h3>
+                <ul>
+                    <li><span class="help-strong">名前</span> を入力して、1回または10連ボタンを押してください。</li>
+                    <li>名前ごとに履歴が保存されるので、友達と一緒に楽しめます。</li>
+                    <li><span class="help-strong">クイック選択:</span> 一度入力した名前は、入力欄の下に表示されるチップから一瞬で呼び出せます。</li>
+                </ul>
+            </div>
+
+            <div class="help-section">
+                <h3>📊 ステップ3：データを管理する</h3>
+                <ul>
+                    <li><span class="help-strong">名前別のタブ</span> を切り替えることで、それぞれの当選確率や履歴を確認できます。</li>
+                    <li><span class="help-strong">Excel出力:</span> SheetJSの力で、全員分のデータを「シート（タブ）分け」した状態でダウンロード可能です。</li>
+                </ul>
+            </div>
+
+            <div class="help-section">
+                <h3>📱 スマホでも快適に</h3>
+                <ul>
+                    <li>横にスワイプしてタブを切り替えられます。</li>
+                    <li><span class="help-strong">自動保存:</span> データはブラウザに自動保存されるので、ページを閉じても安心です。</li>
+                </ul>
+            </div>
+            
+            <button onclick="closeHelp()" class="btn-main" style="width: 100%; margin-top: 10px;">閉じる</button>
+        </div>
+    </div>
+
     <!-- 設定モーダル -->
     <div id="modal" class="modal" style="display: none;">
-        <div class="modal-content">
+        <div class="modal-content" style="position: relative;">
             <span class="close" onclick="closeModal()">&times;</span>
             <h2>景品設定</h2>
             <div id="itemInputs" style="max-height: 400px; overflow-y: auto; margin-bottom: 10px;"></div>
