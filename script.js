@@ -495,7 +495,7 @@ function renderInputs() {
         </div>
     `).join('');
 
-    // --- 追加ボタンと合計確率（景品リスト直下に配置）---
+    // --- 追加ボタンと合計確率 ---
     html += `
     <div style="display:flex; justify-content: space-between; align-items: center; margin: 10px 0;">
         <button class="btn-sub" onclick="addItem()">+ 追加</button>
