@@ -31,8 +31,8 @@ function init() {
     updateMuteIcon(); // ミュートアイコンの表示更新
 
     // 端末判定によるガイドテキスト設定
-    const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-    const guideText = isTouch ? "右上の❓をタッチして使い方を確認！" : "右上の❓をクリックして使い方を確認！";
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    const guideText = isMobile ? "右上の❓をタッチして使い方を確認！" : "右上の❓をクリックして使い方を確認！";
     const guideEl = document.getElementById('helpGuide');
     if(guideEl) guideEl.innerText = guideText;
 }
