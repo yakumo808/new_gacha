@@ -32,7 +32,8 @@ function init() {
 
     // 端末判定によるガイドテキスト設定
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-    const guideText = isMobile ? "右上の❓をタッチして使い方を確認！" : "右上の❓をクリックして使い方を確認！";
+    const action = isMobile ? "タッチ" : "クリック";
+    const guideText = `Gacha Lab Yへようこそ！右上の❓を${action}して使い方を確認！`;
     const guideEl = document.getElementById('helpGuide');
     if(guideEl) guideEl.innerText = guideText;
 }
@@ -402,7 +403,7 @@ function exportExcel() {
         XLSX.utils.book_append_sheet(wb, ws, user); // ユーザー名でシート追加
     });
 
-    XLSX.writeFile(wb, "ガチャ履歴_レポート.xlsx");
+    XLSX.writeFile(wb, "Gacha_Lab_Y_Report.xlsx");
 }
 
 // --- 設定・保存系 ---

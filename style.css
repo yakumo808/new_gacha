@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&display=swap');
+
 :root {
     --bg-color: #0a0a0b;
     --card-bg: #1a1f29;
@@ -15,6 +17,16 @@ body {
 }
 
 .container { max-width: 800px; margin: 0 auto; text-align: center; }
+
+/* ロゴデザイン：Gacha Lab Y */
+.logo-y {
+    font-family: 'Dancing Script', cursive;
+    color: #ffdf00; /* SSR演出のゴールド */
+    font-size: 1.5em; /* 少し大きく */
+    display: inline-block;
+    transform: rotate(-5deg) translateY(2px); /* 傾きと位置調整 */
+    text-shadow: 0 0 10px rgba(255, 223, 0, 0.5); /* 宝石のような発光 */
+}
 
 /* 使い方は？ガイド */
 .help-guide {
