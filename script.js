@@ -466,50 +466,6 @@ function renderInputs() {
     const container = document.getElementById('itemInputs');
     let html = "";
 
-    // --- 天井設定セクションの注入 ---
-    html += `
-    <div class="pity-settings-box">
-        <h3 class="pity-title">天井設定</h3>
-        <div class="pity-row">
-            <label class="toggle-switch">
-                <input type="checkbox" onchange="updatePity('enabled', this.checked)" ${pitySettings.enabled ? 'checked' : ''}>
-                <span class="slider round"></span>
-            </label>
-            <span class="pity-label-text">天井機能を有効にする</span>
-        </div>
-        <div class="pity-row" style="margin-top:8px;">
-            <span>SSR排出なし</span>
-            <input type="number" class="pity-input" value="${pitySettings.threshold}" onchange="updatePity('threshold', this.value)">
-            <span>回で次回SSR確定</span>
-        </div>
-    </div>
-    `;
-
-    // --- 音声設定セクション ---
-    html += `
-    <div class="sound-settings-box">
-        <h3 class="pity-title">演出サウンド設定</h3>
-        <div class="sound-row">
-            <span class="sound-label">通常当たり音</span>
-            <label class="file-label btn-sub" style="margin:0">
-                変更
-                <input type="file" accept="audio/*" onchange="handleAudio('normal', this)">
-            </label>
-            <button class="btn-sub" onclick="previewSound('normal')">▶ 再生</button>
-        </div>
-        <div class="sound-row" style="margin-top:8px;">
-            <span class="sound-label">SSR大当たり音</span>
-            <label class="file-label btn-sub" style="margin:0">
-                変更
-                <input type="file" accept="audio/*" onchange="handleAudio('ssr', this)">
-            </label>
-            <button class="btn-sub" onclick="previewSound('ssr')">▶ 再生</button>
-        </div>
-        <div style="font-size:0.7rem; color:#aaa; margin-top:5px;">※2MB以内のMP3/WAV推奨</div>
-    </div>
-    <hr style="border-color:#2d3748; margin: 15px 0;">
-    `;
-
     // --- 景品設定リスト ---
     html += settings.map((item, i) => `
         <div class="item-row">
@@ -538,6 +494,59 @@ function renderInputs() {
             ${i !== settings.length-1 ? `<button onclick="removeItem(${i})">×</button>` : '<span>固定</span>'}
         </div>
     `).join('');
+
+    // --- 追加ボタンと合計確率（景品リスト直下に配置）---
+    html += `
+    <div style="display:flex; justify-content: space-between; align-items: center; margin: 10px 0;">
+        <button class="btn-sub" onclick="addItem()">+ 追加</button>
+        <div style="font-weight:bold;">合計確率: <span id="totalProb">0</span>%</div>
+    </div>
+    <hr style="border-color:#2d3748; margin: 20px 0;">
+    `;
+
+    // --- 天井設定セクション ---
+    html += `
+    <div class="pity-settings-box">
+        <h3 class="pity-title">天井設定</h3>
+        <div class="pity-row">
+            <label class="toggle-switch">
+                <input type="checkbox" onchange="updatePity('enabled', this.checked)" ${pitySettings.enabled ? 'checked' : ''}>
+                <span class="slider round"></span>
+            </label>
+            <span class="pity-label-text">天井機能を有効にする</span>
+        </div>
+        <div class="pity-row" style="margin-top:8px;">
+            <span>SSR排出なし</span>
+            <input type="number" class="pity-input" value="${pitySettings.threshold}" onchange="updatePity('threshold', this.value)">
+            <span>回で次回SSR確定</span>
+        </div>
+    </div>
+    <hr style="border-color:#2d3748; margin: 20px 0;">
+    `;
+
+    // --- 音声設定セクション ---
+    html += `
+    <div class="sound-settings-box">
+        <h3 class="pity-title">演出サウンド設定</h3>
+        <div class="sound-row">
+            <span class="sound-label">通常当たり音</span>
+            <label class="file-label btn-sub" style="margin:0">
+                変更
+                <input type="file" accept="audio/*" onchange="handleAudio('normal', this)">
+            </label>
+            <button class="btn-sub" onclick="previewSound('normal')">▶ 再生</button>
+        </div>
+        <div class="sound-row" style="margin-top:8px;">
+            <span class="sound-label">SSR大当たり音</span>
+            <label class="file-label btn-sub" style="margin:0">
+                変更
+                <input type="file" accept="audio/*" onchange="handleAudio('ssr', this)">
+            </label>
+            <button class="btn-sub" onclick="previewSound('ssr')">▶ 再生</button>
+        </div>
+        <div style="font-size:0.7rem; color:#aaa; margin-top:5px;">※2MB以内のMP3/WAV推奨</div>
+    </div>
+    `;
     
     container.innerHTML = html;
     calculateProb();
