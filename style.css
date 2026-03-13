@@ -16,6 +16,16 @@ body {
 
 .container { max-width: 800px; margin: 0 auto; text-align: center; }
 
+/* 使い方は？ガイド */
+.help-guide {
+    font-size: 0.9rem;
+    color: #cbd5e1;
+    cursor: pointer;
+    text-decoration: underline;
+    text-decoration-color: var(--accent);
+    margin-top: -10px; margin-bottom: 25px;
+}
+
 /* タブのデザイン */
 .tabs {
     display: flex; gap: 5px; 
@@ -150,17 +160,29 @@ input.prob-error {
 .pity-settings-box {
     background: #232936; padding: 15px; border-radius: 8px; margin-bottom: 10px;
 }
+/* サウンド設定エリアの整理 */
 .sound-settings-box {
     background: #232936; padding: 15px; border-radius: 8px; margin-bottom: 10px;
 }
 .sound-row {
-    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    background: #1a202c; padding: 8px 12px; border-radius: 6px; margin-bottom: 8px;
+}
+.sound-left {
+    display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0;
+}
+.sound-right {
+    display: flex; align-items: center; gap: 5px; flex-shrink: 0;
 }
 .sound-label {
-    flex-grow: 1; font-size: 0.9rem;
+    font-size: 0.9rem; white-space: nowrap;
 }
-
-/* タイトル共通 */
+.sound-filename {
+    font-size: 0.75rem; color: #a0aec0;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    max-width: 100px; /* 長いファイル名は省略 */
+    text-align: right;
+}
 .pity-title {
     margin: 0 0 10px 0; font-size: 1rem; color: var(--accent); border-bottom: 1px solid #4a5568; padding-bottom: 5px;
 }
@@ -181,7 +203,7 @@ input.prob-error {
 
 /* トグルスイッチ */
 .toggle-switch {
-    position: relative; display: inline-block; width: 46px; height: 24px;
+    position: relative; display: inline-block; width: 40px; height: 22px; flex-shrink: 0;
 }
 .toggle-switch input { opacity: 0; width: 0; height: 0; }
 .slider {
@@ -189,11 +211,11 @@ input.prob-error {
     background-color: #4a5568; transition: .4s; border-radius: 24px;
 }
 .slider:before {
-    position: absolute; content: ""; height: 18px; width: 18px;
+    position: absolute; content: ""; height: 16px; width: 16px;
     left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%;
 }
 input:checked + .slider { background-color: var(--accent); }
-input:checked + .slider:before { transform: translateX(22px); }
+input:checked + .slider:before { transform: translateX(18px); }
 
 /* スマホ用調整：スイッチ周りを押しやすく */
 @media (max-width: 600px) {
@@ -214,6 +236,17 @@ input:checked + .slider:before { transform: translateX(22px); }
 .user-chip:hover { background: var(--accent-dark); }
 .user-chip.active { background: var(--accent); color: black; font-weight: bold; }
 
+/* ファイル選択ボタンのスタイル調整（btn-subベース） */
+.file-btn {
+    position: relative; overflow: hidden;
+    margin: 0 !important; font-size: 0.8rem !important; padding: 6px 10px !important;
+    display: inline-flex; align-items: center; justify-content: center;
+}
+.file-btn input[type="file"] {
+    position: absolute; top: 0; left: 0; opacity: 0; width: 100%; height: 100%;
+    cursor: pointer;
+}
+
 /* スクロールバーの見た目調整（タブや履歴エリア用） */
 ::-webkit-scrollbar { height: 6px; width: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
@@ -221,17 +254,8 @@ input:checked + .slider:before { transform: translateX(22px); }
 
 /* ファイル選択ボタンのカスタムデザイン */
 .file-label {
-    display: inline-block;
-    padding: 6px 12px;
-    background: #2d3748;
-    border: 1px solid #4a5568;
-    border-radius: 4px;
-    color: #e2e8f0;
-    font-size: 0.8rem;
-    cursor: pointer;
-    text-align: center;
-    white-space: nowrap;
-    transition: all 0.2s;
+    /* アイテム設定画面の画像選択用 */
+    display: inline-block; padding: 6px 12px; background: #2d3748; border: 1px solid #4a5568; border-radius: 4px; color: #e2e8f0; font-size: 0.8rem; cursor: pointer; text-align: center; white-space: nowrap; transition: all 0.2s;
     display: flex; align-items: center; justify-content: center;
     min-width: 80px; /* 押しやすさ確保 */
 }
@@ -268,6 +292,10 @@ input:checked + .slider:before { transform: translateX(22px); }
         font-size: 16px; /* ズーム防止 */
         padding: 10px;
         margin-bottom: 10px;
+    }
+    
+    .sound-filename {
+        max-width: 60px; /* スマホではさらに短く */
     }
     
     /* 履歴エリアの高さをスマホ画面に合わせて調整 */

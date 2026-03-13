@@ -13,7 +13,8 @@ let currentViewUser = ""; // 現在表示中のタブ
 // 音声設定（初期値：デフォルトファイル）
 let soundSettings = JSON.parse(localStorage.getItem('gachaSoundSettings')) || { 
     normal: 'fanfare.mp3', 
-    ssr: 'ssr_fanfare.mp3' 
+    ssr: 'ssr_fanfare.mp3',
+    ssrEnabled: true // 大当たり音・演出の有効フラグ
 };
 
 // ミュート設定（初期値：オフ）
@@ -28,6 +29,12 @@ function init() {
     
     applySoundSettings(); // 保存された音声設定を適用
     updateMuteIcon(); // ミュートアイコンの表示更新
+
+    // 端末判定によるガイドテキスト設定
+    const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    const guideText = isTouch ? "右上の❓をタッチして使い方を確認！" : "右上の❓をクリックして使い方を確認！";
+    const guideEl = document.getElementById('helpGuide');
+    if(guideEl) guideEl.innerText = guideText;
 }
 
 // --- ガチャ実行 ---
@@ -47,20 +54,27 @@ function draw(times) {
     }
 
     const results = [];
+    
+    // --- 動的な大当たり(SSR)判定の準備 ---
+    // 設定の中で最も確率が低い値を特定する
+    const minProb = Math.min(...settings.map(s => s.prob));
+    // 天井で排出するアイテム（最低確率のものの中から最初の1つを選択）
+    const pityTarget = settings.find(s => s.prob === minProb);
+
     for(let i=0; i<times; i++) {
         let res;
         let isPity = false;
 
         // --- 天井判定ロジック ---
-        // 有効かつ、現在のカウントが設定値以上ならSSR（配列の0番目）を強制排出
+        // 有効かつ、現在のカウントが設定値以上なら大当たり対象（最低確率）を強制排出
         if (pitySettings.enabled && userData[inputName].pityCount >= pitySettings.threshold) {
-            res = settings[0];
+            res = pityTarget;
             isPity = true;
             userData[inputName].pityCount = 0; // カウントリセット
         } else {
             res = performRoll();
-            // SSR（配列0番目）が当たったらカウントリセット、それ以外は加算
-            if (res === settings[0]) {
+            // 最低確率のアイテムが当たったらカウントリセット、それ以外は加算
+            if (res.prob === minProb) {
                 userData[inputName].pityCount = 0;
             } else {
                 userData[inputName].pityCount++;
@@ -69,7 +83,7 @@ function draw(times) {
         
         // 結果を保存（isPityフラグを付与してUI表示に使用）
         // オブジェクトのコピーを作るため、ここでSSR判定(参照一致)を行ってフラグとして持たせる
-        const isSSR = (res === settings[0]);
+        const isSSR = (res.prob === minProb); // 確率が最低値なら大当たり扱い
         results.push({ ...res, isPity: isPity, isSSR: isSSR });
         
         // ユーザーデータに保存
@@ -80,11 +94,13 @@ function draw(times) {
         userData[inputName].counts[res.name] = (userData[inputName].counts[res.name] || 0) + 1;
     }
 
-    // 2. SSRが含まれているか判定 (settings[0]がSSRと仮定)
+    // 2. SSRが含まれているか判定
     const hasSSR = results.some(r => r.isSSR);
 
-    // 3. 音と演出のトリガー
-    playGachaSound(hasSSR ? 'ssrSound' : 'gachaSound');
+    // 3. 音と演出のトリガー（設定でSSR音が有効な場合のみSSR音を鳴らす）
+    const soundType = (hasSSR && soundSettings.ssrEnabled) ? 'ssrSound' : 'gachaSound';
+    playGachaSound(soundType);
+
     if (hasSSR) {
         triggerSSREffects();
     }
@@ -527,22 +543,31 @@ function renderInputs() {
     // --- 音声設定セクション ---
     html += `
     <div class="sound-settings-box">
-        <h3 class="pity-title">演出サウンド設定</h3>
+        <h3 class="pity-title">演出サウンド</h3>
+        
+        <!-- 通常当たり -->
         <div class="sound-row">
-            <span class="sound-label">通常当たり音</span>
-            <label class="file-label btn-sub" style="margin:0">
-                変更
-                <input type="file" accept="audio/*" onchange="handleAudio('normal', this)">
-            </label>
-            <button class="btn-sub" onclick="previewSound('normal')">▶ 再生</button>
+            <div class="sound-left">
+                <span class="sound-label">通常</span>
+            </div>
+            <div class="sound-right">
+                <span class="sound-filename">${getSoundDisplayName(soundSettings.normal)}</span>
+                <label class="btn-sub file-btn">変更<input type="file" accept="audio/*" onchange="handleAudio('normal', this)"></label>
+                <button class="btn-sub file-btn" onclick="previewSound('normal')">▶</button>
+            </div>
         </div>
-        <div class="sound-row" style="margin-top:8px;">
-            <span class="sound-label">SSR大当たり音</span>
-            <label class="file-label btn-sub" style="margin:0">
-                変更
-                <input type="file" accept="audio/*" onchange="handleAudio('ssr', this)">
-            </label>
-            <button class="btn-sub" onclick="previewSound('ssr')">▶ 再生</button>
+
+        <!-- 大当たり -->
+        <div class="sound-row">
+            <div class="sound-left">
+                <span class="sound-label">大当たり</span>
+                <label class="toggle-switch"><input type="checkbox" onchange="updateSound('ssrEnabled', this.checked)" ${soundSettings.ssrEnabled ? 'checked' : ''}><span class="slider round"></span></label>
+            </div>
+            <div class="sound-right">
+                <span class="sound-filename">${getSoundDisplayName(soundSettings.ssr)}</span>
+                <label class="btn-sub file-btn">変更<input type="file" accept="audio/*" onchange="handleAudio('ssr', this)"></label>
+                <button class="btn-sub file-btn" onclick="previewSound('ssr')">▶</button>
+            </div>
         </div>
         <div style="font-size:0.7rem; color:#aaa; margin-top:5px;">※2MB以内のMP3/WAV推奨</div>
     </div>
@@ -552,10 +577,22 @@ function renderInputs() {
     calculateProb();
 }
 
+// ファイル名の表示用ヘルパー
+function getSoundDisplayName(val) {
+    if (!val) return "未選択";
+    if (val.startsWith('data:')) return "カスタム";
+    return val.length > 10 ? val.substring(0, 8) + "..." : val;
+}
+
 // 天井設定の更新用関数
 window.updatePity = function(key, val) {
     if (key === 'enabled') pitySettings.enabled = val;
     if (key === 'threshold') pitySettings.threshold = parseInt(val) || 100;
+};
+
+// 音声設定の更新用関数
+window.updateSound = function(key, val) {
+    soundSettings[key] = val;
 };
 
 function handleFile(i, input) {
@@ -602,7 +639,7 @@ window.handleAudio = function(type, input) {
         reader.onload = (e) => {
             soundSettings[type] = e.target.result;
             applySoundSettings(); // 即座に反映
-            alert(`${type === 'ssr' ? 'SSR' : '通常'}演出の音声を変更しました`);
+            renderInputs(); // ファイル名表示（カスタム）を更新するために再描画
         };
         reader.readAsDataURL(file);
     }
