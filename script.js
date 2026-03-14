@@ -496,7 +496,7 @@ function renderInputs() {
             
             <!-- 画像選択ボタン：画像ありなら色を変えて視覚的に強調 -->
             <label class="file-label" style="${item.img ? 'background:#3182ce; border-color:#3182ce; font-weight:bold; color:white;' : ''}">
-                ${item.img ? '画像あり' : '画像選択'}
+                ${item.img ? '画像変更' : '画像選択'}
                 <input type="file" accept="image/*" onchange="handleFile(${i}, this)">
             </label>
 
