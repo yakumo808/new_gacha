@@ -1,24 +1,33 @@
+// --- ストレージキーの定義 ---
+const STORAGE_KEYS = {
+    SETTINGS: 'gachaSettings',
+    USER_DATA: 'gachaUserData',
+    PITY: 'gachaPitySettings',
+    SOUND: 'gachaSoundSettings',
+    MUTED: 'gachaMuted'
+};
+
 // --- 初期データ ---
-let settings = JSON.parse(localStorage.getItem('gachaSettings')) || [
+let settings = JSON.parse(localStorage.getItem(STORAGE_KEYS.SETTINGS)) || [
     { name: "SSR：超レア", prob: 1, color: "#ffdf00", img: "./SSR.png" },
     { name: "SR：激レア", prob: 9, color: "#e879f9", img: "./SR.png" },
     { name: "R：通常", prob: 90, color: "#94a3b8", img: "./R.png" }
 ];
 // 天井設定（初期値：無効, 100回）
-let pitySettings = JSON.parse(localStorage.getItem('gachaPitySettings')) || { enabled: false, threshold: 100 };
+let pitySettings = JSON.parse(localStorage.getItem(STORAGE_KEYS.PITY)) || { enabled: false, threshold: 100 };
 // ユーザーごとのデータを格納するオブジェクト
-let userData = JSON.parse(localStorage.getItem('gachaUserData')) || {}; 
+let userData = JSON.parse(localStorage.getItem(STORAGE_KEYS.USER_DATA)) || {}; 
 let currentViewUser = ""; // 現在表示中のタブ
 
 // 音声設定（初期値：デフォルトファイル）
-let soundSettings = JSON.parse(localStorage.getItem('gachaSoundSettings')) || { 
+let soundSettings = JSON.parse(localStorage.getItem(STORAGE_KEYS.SOUND)) || { 
     normal: 'fanfare.mp3', 
     ssr: 'ssr_fanfare.mp3',
     ssrEnabled: true // 大当たり音・演出の有効フラグ
 };
 
 // ミュート設定（初期値：オフ）
-let isMuted = JSON.parse(localStorage.getItem('gachaMuted')) || false;
+let isMuted = JSON.parse(localStorage.getItem(STORAGE_KEYS.MUTED)) || false;
 
 function init() {
     updateUserSelectionUI(); // datalistだけでなくボタンリストも更新
@@ -114,9 +123,9 @@ function draw(times) {
 }
 
 // ミュート切り替え関数
-window.toggleMute = function() {
+function toggleMute() {
     isMuted = !isMuted;
-    localStorage.setItem('gachaMuted', JSON.stringify(isMuted));
+    localStorage.setItem(STORAGE_KEYS.MUTED, JSON.stringify(isMuted));
     updateMuteIcon();
     
     // 音が鳴っていたら止める
@@ -402,17 +411,17 @@ function exportExcel() {
 // --- 設定・保存系 ---
 function saveToStorage() {
     try {
-        localStorage.setItem('gachaSettings', JSON.stringify(settings));
-        localStorage.setItem('gachaUserData', JSON.stringify(userData));
-        localStorage.setItem('gachaPitySettings', JSON.stringify(pitySettings)); // 天井設定も保存
-        localStorage.setItem('gachaSoundSettings', JSON.stringify(soundSettings)); // 音声設定保存
+        localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
+        localStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(userData));
+        localStorage.setItem(STORAGE_KEYS.PITY, JSON.stringify(pitySettings)); // 天井設定も保存
+        localStorage.setItem(STORAGE_KEYS.SOUND, JSON.stringify(soundSettings)); // 音声設定保存
     } catch (e) {
         // 容量オーバー時の自動クリーンアップ機能
         if (e.name === 'QuotaExceededError' || e.code === 22) {
             console.warn("容量不足のため、古い履歴を削除して再保存を試みます。");
             cleanupOldData();
             try {
-                localStorage.setItem('gachaUserData', JSON.stringify(userData));
+                localStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(userData));
                 alert("保存容量がいっぱいになったため、古い履歴の一部を自動削除しました。");
             } catch (retryE) {
                 alert("データの保存に失敗しました。画像サイズが大きすぎる可能性があります。");
@@ -444,33 +453,19 @@ function updateUserSelectionUI() {
     if (!quickArea) return;
     
     quickArea.innerHTML = Object.keys(userData).map(u => `
-        <div class="user-chip ${u === currentViewUser ? 'active' : ''}" 
-             onclick="selectUserFromChip('${u}')">
+        <div class="user-chip ${u === currentViewUser ? 'active' : ''}" data-name="${u}">
             ${u}
         </div>
     `).join('');
 }
 
-// チップをクリックした時の動作
-window.selectUserFromChip = function(name) {
-    document.getElementById('userName').value = name;
-    switchTab(name);
-}
-
 // 設定モーダル関連の関数
-function openModal() { document.getElementById('modal').style.display = 'flex'; renderInputs(); }
-function closeModal() { document.getElementById('modal').style.display = 'none'; }
+function openModal() { document.getElementById('modal').style.display = 'flex'; document.body.style.overflow = 'hidden'; renderInputs(); }
+function closeModal() { document.getElementById('modal').style.display = 'none'; document.body.style.overflow = ''; }
 
 // ヘルプモーダル関連の関数
-function openHelp() { document.getElementById('helpModal').style.display = 'flex'; }
-function closeHelp() { document.getElementById('helpModal').style.display = 'none'; }
-
-// モーダルの外側をクリックしたら閉じる処理（共通）
-window.onclick = function(event) {
-    if (event.target.classList.contains('modal')) {
-        event.target.style.display = 'none';
-    }
-}
+function openHelp() { document.getElementById('helpModal').style.display = 'flex'; document.body.style.overflow = 'hidden'; }
+function closeHelp() { document.getElementById('helpModal').style.display = 'none'; document.body.style.overflow = ''; }
 
 function renderInputs() {
     const container = document.getElementById('itemInputs');
@@ -485,30 +480,29 @@ function renderInputs() {
                 : `<div class="setting-preview">No Img</div>`
             }
 
-            <input type="text" value="${item.name}" onchange="updateItem(${i}, 'name', this.value)">
+            <input type="text" value="${item.name}" data-index="${i}" data-key="name">
             
             <!-- 確率入力欄: 最下段は自動計算のためreadonly -->
             <input type="number" id="prob-input-${i}" value="${item.prob}" 
                 ${i === settings.length-1 ? 'readonly class="calc-target"' : ''} 
-                oninput="updateItem(${i}, 'prob', this.value)"
-                step="0.1"
+                step="0.1" data-index="${i}" data-key="prob"
             >
             
             <!-- 画像選択ボタン：画像ありなら色を変えて視覚的に強調 -->
-            <label class="file-label" style="${item.img ? 'background:#3182ce; border-color:#3182ce; font-weight:bold; color:white;' : ''}">
+            <label class="file-label ${item.img ? 'has-img' : ''}">
                 ${item.img ? '画像変更' : '画像選択'}
-                <input type="file" accept="image/*" onchange="handleFile(${i}, this)">
+                <input type="file" accept="image/*" class="item-img-file" data-index="${i}">
             </label>
 
-            <input type="color" value="${item.color}" onchange="updateItem(${i}, 'color', this.value)" style="height:32px; padding:0; width:100%;">
-            ${i !== settings.length-1 ? `<button onclick="removeItem(${i})">×</button>` : '<span>固定</span>'}
+            <input type="color" value="${item.color}" data-index="${i}" data-key="color" style="height:32px; padding:0; width:100%;">
+            ${i !== settings.length-1 ? `<button class="remove-btn btn-danger" data-index="${i}" style="padding: 4px;">×</button>` : '<span>固定</span>'}
         </div>
     `).join('');
 
     // --- 追加ボタンと合計確率 ---
     html += `
     <div style="display:flex; justify-content: space-between; align-items: center; margin: 10px 0;">
-        <button class="btn-sub" onclick="addItem()">+ 追加</button>
+        <button class="btn-sub add-btn">+ 追加</button>
         <div style="font-weight:bold;">合計確率: <span id="totalProb">0</span>%</div>
     </div>
     <hr style="border-color:#2d3748; margin: 20px 0;">
@@ -520,14 +514,14 @@ function renderInputs() {
         <h3 class="pity-title">天井設定</h3>
         <div class="pity-row">
             <label class="toggle-switch">
-                <input type="checkbox" onchange="updatePity('enabled', this.checked)" ${pitySettings.enabled ? 'checked' : ''}>
+                <input type="checkbox" class="pity-enable-toggle" ${pitySettings.enabled ? 'checked' : ''}>
                 <span class="slider round"></span>
             </label>
             <span class="pity-label-text">天井機能を有効にする</span>
         </div>
         <div class="pity-row" style="margin-top:8px;">
             <span>SSR排出なし</span>
-            <input type="number" class="pity-input" value="${pitySettings.threshold}" onchange="updatePity('threshold', this.value)">
+            <input type="number" class="pity-input pity-threshold-input" value="${pitySettings.threshold}">
             <span>回で次回SSR確定</span>
         </div>
     </div>
@@ -546,8 +540,8 @@ function renderInputs() {
             </div>
             <div class="sound-right">
                 <span class="sound-filename">${getSoundDisplayName(soundSettings.normal)}</span>
-                <label class="btn-sub file-btn">変更<input type="file" accept="audio/*" onchange="handleAudio('normal', this)"></label>
-                <button class="btn-sub file-btn" onclick="previewSound('normal')">▶</button>
+                <label class="btn-sub file-btn">変更<input type="file" accept="audio/*" class="sound-file-input" data-sound-type="normal"></label>
+                <button class="btn-sub file-btn preview-sound-btn" data-sound-type="normal">▶</button>
             </div>
         </div>
 
@@ -555,12 +549,12 @@ function renderInputs() {
         <div class="sound-row">
             <div class="sound-left">
                 <span class="sound-label">大当たり</span>
-                <label class="toggle-switch"><input type="checkbox" onchange="updateSound('ssrEnabled', this.checked)" ${soundSettings.ssrEnabled ? 'checked' : ''}><span class="slider round"></span></label>
+                <label class="toggle-switch"><input type="checkbox" class="ssr-sound-toggle" ${soundSettings.ssrEnabled ? 'checked' : ''}><span class="slider round"></span></label>
             </div>
             <div class="sound-right">
                 <span class="sound-filename">${getSoundDisplayName(soundSettings.ssr)}</span>
-                <label class="btn-sub file-btn">変更<input type="file" accept="audio/*" onchange="handleAudio('ssr', this)"></label>
-                <button class="btn-sub file-btn" onclick="previewSound('ssr')">▶</button>
+                <label class="btn-sub file-btn">変更<input type="file" accept="audio/*" class="sound-file-input" data-sound-type="ssr"></label>
+                <button class="btn-sub file-btn preview-sound-btn" data-sound-type="ssr">▶</button>
             </div>
         </div>
         <div style="font-size:0.7rem; color:#aaa; margin-top:5px;">※2MB以内のMP3/WAV推奨</div>
@@ -579,13 +573,13 @@ function getSoundDisplayName(val) {
 }
 
 // 天井設定の更新用関数
-window.updatePity = function(key, val) {
+function updatePity(key, val) {
     if (key === 'enabled') pitySettings.enabled = val;
     if (key === 'threshold') pitySettings.threshold = parseInt(val) || 100;
 };
 
 // 音声設定の更新用関数
-window.updateSound = function(key, val) {
+function updateSound(key, val) {
     soundSettings[key] = val;
 };
 
@@ -608,8 +602,8 @@ function handleFile(i, input) {
                 canvas.height = height;
                 const ctx = canvas.getContext('2d');
                 ctx.drawImage(img, 0, 0, width, height);
-                // JPEG形式で圧縮率0.7として保存
-                settings[i].img = canvas.toDataURL('image/jpeg', 0.7);
+                // WebP形式に変更し軽量化
+                settings[i].img = canvas.toDataURL('image/webp', 0.8);
                 
                 // 処理完了後にUIを再描画してプレビューを即時更新
                 renderInputs();
@@ -621,7 +615,7 @@ function handleFile(i, input) {
 }
 
 // 音声ファイルの処理
-window.handleAudio = function(type, input) {
+function handleAudio(type, input) {
     const file = input.files[0];
     if (file) {
         // サイズチェック (例: 3MB制限)
@@ -640,21 +634,22 @@ window.handleAudio = function(type, input) {
 };
 
 // 音声の適用
-window.applySoundSettings = function() {
+function applySoundSettings() {
     const n = document.getElementById('gachaSound');
     const s = document.getElementById('ssrSound');
-    if(n) n.src = soundSettings.normal;
-    if(s) s.src = soundSettings.ssr;
+    if(n) { n.src = soundSettings.normal; n.volume = 0.6; }
+    if(s) { s.src = soundSettings.ssr; s.volume = 0.6; }
 };
 
 // プレビュー再生
-window.previewSound = function(type) {
+function previewSound(type) {
     if (isMuted) {
         alert("ミュート中です。音声を再生するには右上のボタンでミュートを解除してください。");
         return;
     }
     const src = soundSettings[type];
     const audio = new Audio(src);
+    audio.volume = 0.6;
     audio.play().catch(e => alert("再生できませんでした"));
 };
 
@@ -667,6 +662,7 @@ function calculateProb() {
     
     const lastIdx = settings.length - 1;
     let lastProb = 100 - sum;
+    lastProb = Math.round(lastProb * 10) / 10; // 浮動小数点誤差の防止
 
     // --- バリデーションとUI更新 ---
     const saveBtn = document.getElementById('saveBtn');
@@ -716,7 +712,7 @@ function saveSettings() { saveToStorage(); closeModal(); alert("設定を保存�
 // 1. 履歴と集計（ユーザーデータ）のみをリセットする
 function resetHistory() {
     if(confirm("すべてのユーザーの【履歴と集計】をリセットしますか？（景品の設定は維持されます）")) {
-        localStorage.removeItem('gachaUserData'); // 履歴データのみ削除
+        localStorage.removeItem(STORAGE_KEYS.USER_DATA); // 履歴データのみ削除
         userData = {};
         currentViewUser = "";
         
@@ -734,10 +730,97 @@ function resetHistory() {
 // 2. 景品設定（名前・確率・画像）のみを初期化する
 function resetSettings() {
     if(confirm("【景品の設定（確率や画像）】を初期状態に戻しますか？（これまでの履歴は維持されます）")) {
-        localStorage.removeItem('gachaSettings'); // 設定データのみ削除
+        localStorage.removeItem(STORAGE_KEYS.SETTINGS); // 設定データのみ削除
         alert("設定を初期化しました。ページを再読み込みします。");
         location.reload();
     }
 }
-// 画面の読み込みが完了してから初期化を実行する
-document.addEventListener('DOMContentLoaded', init);
+
+// --- イベントリスナーのセットアップ ---
+function setupEventListeners() {
+    document.getElementById('helpBtnTop').addEventListener('click', openHelp);
+    document.getElementById('muteBtn').addEventListener('click', toggleMute);
+    document.getElementById('settingsBtnTop').addEventListener('click', openModal);
+    document.getElementById('helpGuide').addEventListener('click', openHelp);
+    document.getElementById('draw1Btn').addEventListener('click', () => draw(1));
+    document.getElementById('draw10Btn').addEventListener('click', () => draw(10));
+    document.getElementById('exportBtn').addEventListener('click', exportExcel);
+    document.getElementById('resetHistoryBtn').addEventListener('click', resetHistory);
+    document.getElementById('closeHelpSpan').addEventListener('click', closeHelp);
+    document.getElementById('closeHelpBtnBottom').addEventListener('click', closeHelp);
+    document.getElementById('closeSettingsSpan').addEventListener('click', closeModal);
+    document.getElementById('saveBtn').addEventListener('click', saveSettings);
+    document.getElementById('resetSettingsBtn').addEventListener('click', resetSettings);
+
+    // モーダル外クリックで閉じる
+    window.addEventListener('click', (event) => {
+        if (event.target.classList.contains('modal')) {
+            event.target.style.display = 'none';
+            document.body.style.overflow = '';
+        }
+    });
+
+    // クイックユーザー選択のイベント委任
+    const quickArea = document.getElementById('quickUserSelect');
+    if (quickArea) {
+        quickArea.addEventListener('click', (e) => {
+            if (e.target.classList.contains('user-chip')) {
+                const name = e.target.getAttribute('data-name');
+                if (name) {
+                    document.getElementById('userName').value = name;
+                    switchTab(name);
+                }
+            }
+        });
+    }
+
+    // 設定モーダル内のイベント委任
+    const itemInputs = document.getElementById('itemInputs');
+    if (itemInputs) {
+        itemInputs.addEventListener('input', (e) => {
+            const target = e.target;
+            if (target.matches('input[type="text"], input[type="number"], input[type="color"]')) {
+                const idx = target.getAttribute('data-index');
+                const key = target.getAttribute('data-key');
+                if (idx !== null && key) updateItem(parseInt(idx), key, target.value);
+            }
+        });
+        
+        itemInputs.addEventListener('change', (e) => {
+            const target = e.target;
+            if (target.matches('input[type="file"].item-img-file')) {
+                const idx = target.getAttribute('data-index');
+                if (idx !== null) handleFile(parseInt(idx), target);
+            } else if (target.matches('input[type="checkbox"].pity-enable-toggle')) {
+                updatePity('enabled', target.checked);
+            } else if (target.matches('input[type="number"].pity-threshold-input')) {
+                updatePity('threshold', target.value);
+            } else if (target.matches('input[type="checkbox"].ssr-sound-toggle')) {
+                updateSound('ssrEnabled', target.checked);
+            } else if (target.matches('input[type="file"].sound-file-input')) {
+                const type = target.getAttribute('data-sound-type');
+                if (type) handleAudio(type, target);
+            }
+        });
+
+        itemInputs.addEventListener('click', (e) => {
+            const btn = e.target.closest('button');
+            if (!btn) return;
+            if (btn.classList.contains('remove-btn')) {
+                const idx = btn.getAttribute('data-index');
+                if (idx !== null) removeItem(parseInt(idx));
+            } else if (btn.classList.contains('add-btn')) {
+                addItem();
+            } else if (btn.classList.contains('preview-sound-btn')) {
+                const type = btn.getAttribute('data-sound-type');
+                if (type) previewSound(type);
+            }
+        });
+    }
+}
+
+// 画面の読み込みが完了してから初期化とイベント登録を実行する
+document.addEventListener('DOMContentLoaded', () => {
+    setupEventListeners();
+    init();
+});

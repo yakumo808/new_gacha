@@ -55,13 +55,13 @@
     </style>
 </head>
 <body>
-    <button class="btn-help" onclick="openHelp()">❓</button>
-    <button id="muteBtn" class="btn-mute" onclick="toggleMute()">🔊</button>
-    <button class="btn-settings" onclick="openModal()">⚙</button>
+    <button id="helpBtnTop" class="btn-help">❓</button>
+    <button id="muteBtn" class="btn-mute">🔊</button>
+    <button id="settingsBtnTop" class="btn-settings">⚙</button>
 
     <div class="container">
         <h1>Gacha Lab <span class="logo-y">Y</span></h1>
-        <p id="helpGuide" class="help-guide" onclick="openHelp()"></p>
+        <p id="helpGuide" class="help-guide"></p>
         
         <div class="user-control">
             <input type="text" id="userName" list="userList" placeholder="名前を入力してガチャ開始" class="name-input">
@@ -73,8 +73,8 @@
         <div class="display-area" id="displayArea">結果がここに表示されます</div>
 
         <div class="btn-group">
-            <button class="btn-main" onclick="draw(1)">1回引く</button>
-            <button class="btn-main btn-ten" onclick="draw(10)">10連ガチャ</button>
+            <button id="draw1Btn" class="btn-main">1回引く</button>
+            <button id="draw10Btn" class="btn-main btn-ten">10連ガチャ</button>
         </div>
 
         <hr>
@@ -105,20 +105,20 @@
             <div class="history-header">
                 <h4>最近の履歴</h4>
                 <div class="export-btns">
-                    <button onclick="exportExcel()" class="btn-sub">Excel一括出力 (タブ分け)</button>
+                    <button id="exportBtn" class="btn-sub">Excel一括出力 (タブ分け)</button>
                 </div>
             </div>
             <div class="history-area" id="historyList"></div>
         </div>
         
         <div class="footer-btns" style="margin-top: 30px; display: flex; gap: 10px; justify-content: center;">
-            <button onclick="resetHistory()" class="btn-sub" style="background: #f87171;">履歴・集計をリセット</button>
+            <button id="resetHistoryBtn" class="btn-danger">履歴・集計をリセット</button>
         </div>
 
     <!-- ヘルプモーダル -->
     <div id="helpModal" class="modal" style="display: none;">
         <div class="modal-content" style="position: relative;">
-            <span class="close" onclick="closeHelp()">&times;</span>
+            <span id="closeHelpSpan" class="close">&times;</span>
             <h2>🎰 Gacha Lab Y マニュアル</h2>
             
             <div class="help-section">
@@ -162,26 +162,26 @@
                 </ul>
             </div>
 
-            <button onclick="closeHelp()" class="btn-main" style="width: 100%; margin-top: 10px;">閉じる</button>
+            <button id="closeHelpBtnBottom" class="btn-main" style="width: 100%; margin-top: 10px;">閉じる</button>
         </div>
     </div>
 
     <!-- 設定モーダル -->
     <div id="modal" class="modal" style="display: none;">
         <div class="modal-content" style="position: relative;">
-            <span class="close" onclick="closeModal()">&times;</span>
+            <span id="closeSettingsSpan" class="close">&times;</span>
             <h2>景品設定</h2>
             <div id="itemInputs" style="max-height: 400px; overflow-y: auto; margin-bottom: 10px;"></div>
-            <button id="saveBtn" class="btn-main" onclick="saveSettings()" style="margin-top:15px; width:100%">保存</button>
+            <button id="saveBtn" class="btn-main" style="margin-top:15px; width:100%">保存</button>
 
             <hr style="border: 0; border-top: 1px solid #2d3748; margin: 20px 0;">
-            <button onclick="resetSettings()" class="btn-sub" style="background: #4b5563; width: 100%;">景品設定を初期化</button>
+            <button id="resetSettingsBtn" class="btn-danger" style="width: 100%;">景品設定を初期化</button>
         </div>
     </div>
 
     <!-- ガチャ音源読み込み -->
-    <audio id="gachaSound" src="fanfare.mp3"></audio>
-    <audio id="ssrSound" src="ssr_fanfare.mp3"></audio>
+    <audio id="gachaSound" src="fanfare.mp3" preload="auto"></audio>
+    <audio id="ssrSound" src="ssr_fanfare.mp3" preload="auto"></audio>
 
     <script src="script.js"></script>
 </body>
