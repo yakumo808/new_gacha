@@ -1,3 +1,13 @@
+// --- HTMLエスケープ処理（XSS対策） ---
+function escapeHTML(str) {
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
 // --- ストレージキーの定義 ---
 const STORAGE_KEYS = {
     SETTINGS: 'gachaSettings',
@@ -29,6 +39,9 @@ let soundSettings = JSON.parse(localStorage.getItem(STORAGE_KEYS.SOUND)) || {
 // ミュート設定（初期値：オフ）
 let isMuted = JSON.parse(localStorage.getItem(STORAGE_KEYS.MUTED)) || false;
 
+// プレビュー音声管理用
+let currentPreviewAudio = null;
+
 function init() {
     updateUserSelectionUI(); // datalistだけでなくボタンリストも更新
     renderTabs();
@@ -49,10 +62,12 @@ function init() {
 
 // --- ガチャ実行 ---
 function draw(times) {
-    // 仮の結果生成（この後SSR判定を行うため先に回すわけにはいかないが、ロジック上結果確定後に演出が必要）
-    // なので処理順序としては「ロジック実行」→「SSR判定」→「音と演出」→「表示更新」となります。
+    // ボタンを一時的に無効化（連打防止）
+    const btn1 = document.getElementById('draw1Btn');
+    const btn10 = document.getElementById('draw10Btn');
+    if (btn1) btn1.disabled = true;
+    if (btn10) btn10.disabled = true;
 
-    // 1. まず入力を取得
     const inputName = document.getElementById('userName').value.trim() || "名無しさん";
     
     // ユーザー初期化系は既存のまま
@@ -120,6 +135,12 @@ function draw(times) {
     renderTabs();
     switchTab(inputName);
     updateDisplay(results);
+
+    // 演出終了に合わせてボタンを再度有効化
+    setTimeout(() => {
+        if (btn1) btn1.disabled = false;
+        if (btn10) btn10.disabled = false;
+    }, 600);
 }
 
 // ミュート切り替え関数
@@ -281,7 +302,7 @@ function updateSummaryUI() {
 
     // --- 2. テーブル本体の更新（色分け適用） ---
     body.innerHTML = settings.map(item => `
-        <tr><td style="color: ${item.color}; font-weight: bold;">${item.name}</td><td>${data.counts[item.name] || 0}</td><td>${total > 0 ? (((data.counts[item.name] || 0) / total) * 100).toFixed(1) : 0}%</td></tr>
+        <tr><td style="color: ${item.color}; font-weight: bold;">${escapeHTML(item.name)}</td><td>${data.counts[item.name] || 0}</td><td>${total > 0 ? (((data.counts[item.name] || 0) / total) * 100).toFixed(1) : 0}%</td></tr>
     `).join('');
 
     // --- 3. テーブルフッターの更新 ---
@@ -291,7 +312,7 @@ function updateSummaryUI() {
 function updateHistoryUI() {
     const list = document.getElementById('historyList');
     const data = userData[currentViewUser];
-    list.innerHTML = data ? data.history.map(h => `<div>[${h.time}] ${h.name}</div>`).join('') : "";
+    list.innerHTML = data ? data.history.map(h => `<div>[${h.time}] ${escapeHTML(h.name)}</div>`).join('') : "";
 }
 
 function updateDisplay(results) {
@@ -303,7 +324,7 @@ function updateDisplay(results) {
         <div class="result-card ${isSSR ? 'ssr-card' : ''}" style="border-color: ${res.color}; box-shadow: 0 0 10px ${res.color}">
             ${res.isPity ? `<span class="pity-badge">天井確定！</span>` : ''}
             ${res.img ? `<img src="${res.img}">` : `<div style="height:60px; background:#111"></div>`}
-            <div style="font-size: 0.7rem; color: ${res.color}">${res.name}</div>
+            <div style="font-size: 0.7rem; color: ${res.color}">${escapeHTML(res.name)}</div>
         </div>
     `}).join('');
 }
@@ -446,15 +467,15 @@ function cleanupOldData() {
 function updateUserSelectionUI() {
     // 1. 従来のdatalist更新
     const dl = document.getElementById('userList');
-    dl.innerHTML = Object.keys(userData).map(u => `<option value="${u}">`).join('');
+    dl.innerHTML = Object.keys(userData).map(u => `<option value="${escapeHTML(u)}">`).join('');
 
     // 2. スマホ向けクイック選択ボタンの更新
     const quickArea = document.getElementById('quickUserSelect');
     if (!quickArea) return;
     
     quickArea.innerHTML = Object.keys(userData).map(u => `
-        <div class="user-chip ${u === currentViewUser ? 'active' : ''}" data-name="${u}">
-            ${u}
+        <div class="user-chip ${u === currentViewUser ? 'active' : ''}" data-name="${escapeHTML(u)}">
+            ${escapeHTML(u)}
         </div>
     `).join('');
 }
@@ -480,7 +501,7 @@ function renderInputs() {
                 : `<div class="setting-preview">No Img</div>`
             }
 
-            <input type="text" value="${item.name}" data-index="${i}" data-key="name">
+            <input type="text" value="${escapeHTML(item.name)}" data-index="${i}" data-key="name">
             
             <!-- 確率入力欄: 最下段は自動計算のためreadonly -->
             <input type="number" id="prob-input-${i}" value="${item.prob}" 
@@ -539,9 +560,10 @@ function renderInputs() {
                 <span class="sound-label">通常</span>
             </div>
             <div class="sound-right">
-                <span class="sound-filename">${getSoundDisplayName(soundSettings.normal)}</span>
+                <span class="sound-filename">${escapeHTML(getSoundDisplayName(soundSettings.normal))}</span>
                 <label class="btn-sub file-btn">変更<input type="file" accept="audio/*" class="sound-file-input" data-sound-type="normal"></label>
                 <button class="btn-sub file-btn preview-sound-btn" data-sound-type="normal">▶</button>
+                <button class="btn-sub file-btn stop-sound-btn">■</button>
             </div>
         </div>
 
@@ -552,9 +574,10 @@ function renderInputs() {
                 <label class="toggle-switch"><input type="checkbox" class="ssr-sound-toggle" ${soundSettings.ssrEnabled ? 'checked' : ''}><span class="slider round"></span></label>
             </div>
             <div class="sound-right">
-                <span class="sound-filename">${getSoundDisplayName(soundSettings.ssr)}</span>
+                <span class="sound-filename">${escapeHTML(getSoundDisplayName(soundSettings.ssr))}</span>
                 <label class="btn-sub file-btn">変更<input type="file" accept="audio/*" class="sound-file-input" data-sound-type="ssr"></label>
                 <button class="btn-sub file-btn preview-sound-btn" data-sound-type="ssr">▶</button>
+                <button class="btn-sub file-btn stop-sound-btn">■</button>
             </div>
         </div>
         <div style="font-size:0.7rem; color:#aaa; margin-top:5px;">※2MB以内のMP3/WAV推奨</div>
@@ -647,11 +670,23 @@ function previewSound(type) {
         alert("ミュート中です。音声を再生するには右上のボタンでミュートを解除してください。");
         return;
     }
+    if (currentPreviewAudio) {
+        currentPreviewAudio.pause();
+        currentPreviewAudio.currentTime = 0;
+    }
     const src = soundSettings[type];
-    const audio = new Audio(src);
-    audio.volume = 0.6;
-    audio.play().catch(e => alert("再生できませんでした"));
+    currentPreviewAudio = new Audio(src);
+    currentPreviewAudio.volume = 0.6;
+    currentPreviewAudio.play().catch(e => alert("再生できませんでした"));
 };
+
+function stopPreviewSound() {
+    if (currentPreviewAudio) {
+        currentPreviewAudio.pause();
+        currentPreviewAudio.currentTime = 0;
+        currentPreviewAudio = null;
+    }
+}
 
 function calculateProb() {
     let sum = 0;
@@ -814,6 +849,8 @@ function setupEventListeners() {
             } else if (btn.classList.contains('preview-sound-btn')) {
                 const type = btn.getAttribute('data-sound-type');
                 if (type) previewSound(type);
+            } else if (btn.classList.contains('stop-sound-btn')) {
+                stopPreviewSound();
             }
         });
     }
